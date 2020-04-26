@@ -1,4 +1,4 @@
-package ios
+package bmailLib
 
 import "github.com/BASChain/go-bmail-account"
 
