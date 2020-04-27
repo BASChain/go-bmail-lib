@@ -8,5 +8,5 @@ import (
 type NameResolver interface {
 	DomainA(string) net.IP
 	DomainMX(string) net.IP
-	EmailBCA(string) bmail.Address
+	EmailBCA(string) (bmail.Address, string)
 }

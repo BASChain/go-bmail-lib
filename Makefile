@@ -19,6 +19,8 @@ a:
 i:
 	gomobile bind -v -o $(BINDIR)/BmailLib.framework -target=ios github.com/BASChain/go-bmail-lib/ios
 
+sol:
+	cd resolver/ && $(MAKE)
 clean:
 	gomobile clean
 	rm $(BINDIR)/*

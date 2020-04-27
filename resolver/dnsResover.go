@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"fmt"
 	"github.com/BASChain/go-bmail-account"
 	"net"
 )
@@ -9,15 +10,18 @@ type DNSResolver struct {
 }
 
 func (ds *DNSResolver) DomainA(domain string) net.IP {
-	panic("implement me")
+	fmt.Println("implement me")
+	return net.ParseIP("0.0.0.0")
 }
 
 func (ds *DNSResolver) DomainMX(domainMX string) net.IP {
-	panic("implement me")
+	fmt.Println("implement me")
+	return net.ParseIP("0.0.0.0")
 }
 
-func (ds *DNSResolver) EmailBCA(mailAddress string) bmail.Address {
-	panic("implement me")
+func (ds *DNSResolver) EmailBCA(mailAddress string) (bmail.Address, string) {
+	fmt.Println("implement me")
+	return "", ""
 }
 
 func NewDnsResolver() NameResolver {
