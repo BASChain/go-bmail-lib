@@ -1,5 +1,6 @@
 [
 	{
+		"constant": true,
 		"inputs": [
 			{
 				"internalType": "bytes32",
@@ -20,10 +21,12 @@
 				"type": "string"
 			}
 		],
+		"payable": false,
 		"stateMutability": "view",
 		"type": "function"
 	},
 	{
+		"constant": false,
 		"inputs": [
 			{
 				"internalType": "bytes32",
@@ -43,6 +46,7 @@
 		],
 		"name": "setDns",
 		"outputs": [],
+		"payable": false,
 		"stateMutability": "nonpayable",
 		"type": "function"
 	}
