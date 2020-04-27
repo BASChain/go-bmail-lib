@@ -27,15 +27,15 @@ func LoadWalletByPath(path string) string {
 	return w.Address().String()
 }
 
-func LoadWallet(jsonStr string) string {
+func LoadWallet(jsonStr string) bool {
 	w, err := bmail.LoadWalletByData(jsonStr)
 	if err != nil {
 		fmt.Println("======>[LoadWallet]: LoadWalletByData err:", err.Error())
-		return ""
+		return false
 	}
 	activeWallet = w
 	fmt.Println("======>[LoadWallet]: Load wallet success:", w.Address().String())
-	return w.Address().String()
+	return true
 }
 
 func OpenWallet(auth string) bool {
@@ -78,4 +78,11 @@ func WalletJson() string {
 		return ""
 	}
 	return activeWallet.String()
+}
+
+func MailName() string {
+	if activeWallet == nil{
+		return ""
+	}
+	return activeWallet.MailAddress()
 }
