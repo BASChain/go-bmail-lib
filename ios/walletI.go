@@ -12,8 +12,12 @@ func NewWallet(auth string) string {
 	if e != nil {
 		return ""
 	}
-
+	activeWallet = w
 	return w.String()
+}
+
+func ChangeActiveWallet(jsonStr string) bool{
+	return LoadWallet(jsonStr)
 }
 
 func LoadWalletByPath(path string) string {
@@ -68,6 +72,7 @@ func CloseWallet() {
 
 func Address() string {
 	if activeWallet == nil {
+		fmt.Println("======>Wallet is empty......")
 		return ""
 	}
 	return activeWallet.Address().String()
@@ -85,4 +90,12 @@ func MailName() string {
 		return ""
 	}
 	return activeWallet.MailAddress()
+}
+
+func SetMailName(mailName string) string {
+	if activeWallet ==  nil{
+		return ""
+	}
+	activeWallet.SetMailName(mailName)
+	return activeWallet.String()
 }
