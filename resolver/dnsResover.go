@@ -19,7 +19,7 @@ func (ds *DNSResolver) DomainMX(domainMX string) net.IP {
 	return net.ParseIP("0.0.0.0")
 }
 
-func (ds *DNSResolver) EmailBCA(mailAddress string) (bmail.Address, string) {
+func (ds *DNSResolver) BMailBCA(mailHash string) (bmail.Address, string) {
 	fmt.Println("implement me")
 	return "", ""
 }

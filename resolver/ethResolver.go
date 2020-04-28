@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/BASChain/go-bmail-account"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"net"
 )
@@ -39,18 +38,18 @@ func (er *EthResolver) DomainMX(domainMX string) net.IP {
 	return net.ParseIP("0.0.0.0")
 }
 
-func (er *EthResolver) EmailBCA(emailAddress string) (bmail.Address, string) {
+func (er *EthResolver) BMailBCA(mailHash string) (bmail.Address, string) {
 
-	hash := crypto.Keccak256Hash([]byte(emailAddress))
-	fmt.Println(hash.String())
+	hash := common.HexToHash(mailHash) //crypto.Keccak256Hash([]byte(mailName))
+	fmt.Println(mailHash)
 	conn, err := connect()
 	if err != nil {
-		fmt.Println("[EmailBCA]: connect err:", err.Error())
+		fmt.Println("[BMailBCA]: connect err:", err.Error())
 		return "", ""
 	}
 	res, err := conn.DNS(nil, hash)
 	if err != nil {
-		fmt.Println("[EmailBCA]: connect err:", err.Error())
+		fmt.Println("[BMailBCA]: connect err:", err.Error())
 		return "", ""
 	}
 	return bmail.Address(res.Address), res.CName

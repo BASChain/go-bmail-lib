@@ -7,9 +7,18 @@ type UICallBack interface {
 }
 
 var callback UICallBack
-var nameRel resolver.NameResolver
+var basResolver resolver.NameResolver
 
 func InitSystem(cb UICallBack, debug bool) {
 	callback = cb
-	nameRel = resolver.NewEthResolver(debug)
+	basResolver = resolver.NewEthResolver(debug)
+}
+
+func CalculateHash(mailName string) string {
+	return resolver.BMailNameHash(mailName)
+}
+
+func MailBcaByHash(mailHash string) string {
+	bca, _ := basResolver.BMailBCA(mailHash)
+	return string(bca)
 }
