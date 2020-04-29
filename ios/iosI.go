@@ -1,6 +1,9 @@
 package bmailLib
 
-import "github.com/BASChain/go-bmail-lib/resolver"
+import (
+	"github.com/BASChain/go-bmail-lib/resolver"
+	"github.com/BASChain/go-bmail-lib/utils"
+)
 
 type UICallBack interface {
 	Notification(typ int, msg string)
@@ -21,4 +24,17 @@ func CalculateHash(mailName string) string {
 func MailBcaByHash(mailHash string) string {
 	bca, _ := basResolver.BMailBCA(mailHash)
 	return string(bca)
+}
+
+func CName(mailName string) string {
+	mailHash := resolver.BMailNameHash(mailName)
+	_, cname := basResolver.BMailBCA(mailHash)
+	return  cname
+}
+
+func MailIcon(mailName string) []byte{
+	if mailName == "" {
+		return nil
+	}
+	return utils.GenIDIcon(mailName)
 }

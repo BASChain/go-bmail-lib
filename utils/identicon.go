@@ -1,12 +1,12 @@
-package main
+package utils
 
 import (
+	"bytes"
 	"crypto/md5"
-	"github.com/BASChain/go-bmail-lib/utils"
 	"image/color"
 	"image/png"
-	"io/ioutil"
 )
+
 func rgb(r, g, b uint8) color.NRGBA { return color.NRGBA{r, g, b, 255} }
 
 func md5hash(s string) []byte {
@@ -14,9 +14,10 @@ func md5hash(s string) []byte {
 	h.Write([]byte(s))
 	return h.Sum(nil)
 }
-func main() {
+
+func GenIDIcon(rawStr string) []byte{
 	var data = md5hash("BM6MqKLq5rBJgHcR6w4p4GXuHSgBuCzxB7LVpRHWP16UTw")// hex.DecodeString("BM6MqKLq5rBJgHcR6w4p4GXuHSgBuCzxB7LVpRHWP16UTw")
-	var config = utils.Sigil{
+	var config = Sigil{
 		Rows: 5,
 		Foreground: []color.NRGBA{
 			rgb(45, 79, 255),
@@ -32,13 +33,10 @@ func main() {
 		Background: rgb(224, 224, 224),
 	}
 
-	img := config.Make(420, true, data)
-	fil, err := ioutil.TempFile(".","a.png")
-	if err != nil{
+	img := config.Make(420, false, data)
+	buf := new(bytes.Buffer)
+	if err := png.Encode(buf, img); err != nil{
 		panic(err)
 	}
-
-	if err := png.Encode(fil, img); err != nil{
-		panic(err)
-	}
+	return  buf.Bytes()
 }
