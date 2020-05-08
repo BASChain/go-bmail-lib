@@ -1,8 +1,8 @@
 package bmailLib
 
 import (
-	"github.com/BASChain/go-bmail-lib/resolver"
 	"github.com/BASChain/go-bmail-lib/utils"
+	"github.com/BASChain/go-bmail-resolver"
 )
 
 type UICallBack interface {
@@ -29,10 +29,10 @@ func MailBcaByHash(mailHash string) string {
 func CName(mailName string) string {
 	mailHash := resolver.BMailNameHash(mailName)
 	_, cname := basResolver.BMailBCA(mailHash)
-	return  cname
+	return cname
 }
 
-func MailIcon(mailName string) []byte{
+func MailIcon(mailName string) []byte {
 	if mailName == "" {
 		return nil
 	}
