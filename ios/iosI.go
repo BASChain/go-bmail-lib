@@ -38,3 +38,7 @@ func MailIcon(mailName string) []byte {
 	}
 	return utils.GenIDIcon(mailName)
 }
+
+func MailID() string {
+	return utils.UUID()
+}
