@@ -9,11 +9,11 @@ type UICallBack interface {
 	Notification(typ int, msg string)
 }
 
-var callback UICallBack
+var uiCallback UICallBack
 var basResolver resolver.NameResolver
 
 func InitSystem(cb UICallBack, debug bool) {
-	callback = cb
+	uiCallback = cb
 	basResolver = resolver.NewEthResolver(debug)
 }
 
