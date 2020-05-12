@@ -7,7 +7,18 @@ import (
 
 type UICallBack interface {
 	Notification(typ int, msg string)
+	Error(typ int, msg string)
 }
+
+const (
+	BMErrNone = iota
+	BMErrClientInvalid
+	BMErrWalletInvalid
+	BMErrNoSuchBas
+	BMErrCryptFailed
+	BMErrSendFailed
+	BMErrPackData
+)
 
 var uiCallback UICallBack
 var basResolver resolver.NameResolver
