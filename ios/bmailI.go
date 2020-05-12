@@ -6,6 +6,13 @@ import (
 )
 
 type EnvelopeOfUI struct {
+	Eid     string   `json:"eid"`
+	Subject string   `json:"sub"`
+	MsgBody string   `json:"msg"`
+	From    string   `json:"from"`
+	TOs     []string `json:"tos"`
+	CCs     []string `json:"ccs"`
+	BCCs    []string `json:"bccs"`
 }
 
 var bmClient *bmp.BMailClient = nil
