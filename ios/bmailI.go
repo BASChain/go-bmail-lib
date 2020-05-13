@@ -2,8 +2,6 @@ package bmailLib
 
 import (
 	"fmt"
-	"github.com/BASChain/go-account"
-	"github.com/BASChain/go-bmail-account"
 	"github.com/BASChain/go-bmail-protocol/bmp"
 	"github.com/google/uuid"
 )
@@ -47,7 +45,7 @@ func NewMailClient() bool {
 	return true
 }
 
-func SendCryptMail(eid, from, to, sub, msg string) bool {
+func SendCryptMail(eid, to, sub, msg string) bool {
 
 	if bmClient == nil {
 		uiCallback.Error(BMErrClientInvalid, "mail client is invalid")
@@ -61,46 +59,34 @@ func SendCryptMail(eid, from, to, sub, msg string) bool {
 
 	toAddr, _ := basResolver.BMailBCA(to)
 	if !toAddr.IsValid() {
-		uiCallback.Error(BMErrNoSuchBas, "can't find receiver's block chain data")
+		uiCallback.Error(BMErrNoSuchBas, "can't find receiver's block chain info")
 		return false
-	}
-
-	cc := &bmp.CryptContent{
-		Subject: []byte(sub),
-		MsgBody: []byte(msg),
 	}
 
 	aesKey, err := activeWallet.AeskeyOf(toAddr.ToPubKey())
-	iv, err := bmp.NewIV()
 	if err != nil {
-		uiCallback.Error(BMErrCryptFailed, err.Error())
-		return false
-	}
-	ccData, err := cc.Pack()
-	if err != nil {
-		uiCallback.Error(BMErrPackData, err.Error())
-		return false
-	}
-	encoded, err := account.EncryptWithIV(aesKey, iv.Bytes(), ccData)
-	if err != nil {
-		uiCallback.Error(BMErrCryptFailed, err.Error())
+		uiCallback.Error(BMErrCryptFailed, "can't create peer's aes key")
 		return false
 	}
 
-	cb := &bmp.CryptBody{
-		IV:        *iv,
-		PeerAddr:  toAddr,
-		CryptData: encoded,
+	env := bmp.RawEnvelope{
+		EnvelopeHead: bmp.EnvelopeHead{
+			Eid:      uuid.MustParse(eid),
+			From:     activeWallet.MailAddress(),
+			FromAddr: activeWallet.Address(),
+			To:       to,
+		},
+		EnvelopeBody: bmp.EnvelopeBody{
+			Subject: sub,
+			MsgBody: msg,
+		},
 	}
-
-	env := &bmp.Envelope{
-		EId:     uuid.MustParse(eid),
-		From:    bmail.Address(from),
-		Mode:    bmp.BMailModeP2P,
-		EnvBody: cb,
+	cryptEnv, err := env.Seal(aesKey)
+	if err != nil {
+		uiCallback.Error(BMErrSealFailed, err.Error())
+		return false
 	}
-
-	if err := bmClient.SendMail(env); err != nil {
+	if err := bmClient.SendMail(cryptEnv); err != nil {
 		uiCallback.Error(BMErrSendFailed, err.Error())
 		return false
 	}

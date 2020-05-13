@@ -16,8 +16,8 @@ const (
 	BMErrWalletInvalid
 	BMErrNoSuchBas
 	BMErrCryptFailed
+	BMErrSealFailed
 	BMErrSendFailed
-	BMErrPackData
 )
 
 var uiCallback UICallBack
