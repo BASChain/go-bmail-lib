@@ -63,13 +63,7 @@ func SendCryptMail(eid, to, sub, msg string) bool {
 		return false
 	}
 
-	aesKey, err := activeWallet.AeskeyOf(toAddr.ToPubKey())
-	if err != nil {
-		uiCallback.Error(BMErrCryptFailed, "can't create peer's aes key")
-		return false
-	}
-
-	env := bmp.RawEnvelope{
+	env := &bmp.RawEnvelope{
 		EnvelopeHead: bmp.EnvelopeHead{
 			Eid:      uuid.MustParse(eid),
 			From:     activeWallet.MailAddress(),
@@ -81,12 +75,8 @@ func SendCryptMail(eid, to, sub, msg string) bool {
 			MsgBody: msg,
 		},
 	}
-	cryptEnv, err := env.Seal(aesKey)
-	if err != nil {
-		uiCallback.Error(BMErrSealFailed, err.Error())
-		return false
-	}
-	if err := bmClient.SendMail(cryptEnv); err != nil {
+
+	if err := bmClient.SendP2pMail(env); err != nil {
 		uiCallback.Error(BMErrSendFailed, err.Error())
 		return false
 	}
