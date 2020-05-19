@@ -1,19 +1,21 @@
 package bmailLib
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/BASChain/go-bmail-protocol/bmp"
 	"github.com/google/uuid"
 )
 
 type EnvelopeOfUI struct {
-	Eid     string   `json:"eid"`
-	Subject string   `json:"sub"`
-	MsgBody string   `json:"msg"`
-	From    string   `json:"from"`
-	TOs     []string `json:"tos"`
-	CCs     []string `json:"ccs"`
-	BCCs    []string `json:"bccs"`
+	Eid      string   `json:"eid"`
+	Subject  string   `json:"sub"`
+	MsgBody  string   `json:"msg"`
+	From     string   `json:"from"`
+	TOs      []string `json:"tos"`
+	CCs      []string `json:"ccs"`
+	BCCs     []string `json:"bccs"`
+	MailType int8     `json:"mType"`
 }
 
 var bmClient *bmp.BMailClient = nil
@@ -42,6 +44,18 @@ func NewMailClient() bool {
 	}
 
 	bmClient = bc
+	return true
+}
+
+func SendMailJson(mailJson string) bool {
+
+	fmt.Println(mailJson)
+	jsonMail := &EnvelopeOfUI{}
+	if err := json.Unmarshal([]byte(mailJson), jsonMail); err != nil {
+		uiCallback.Error(BMErrInvalidJson, "mail json data is invalid")
+		return false
+	}
+	fmt.Println(jsonMail)
 	return true
 }
 
@@ -80,5 +94,6 @@ func SendCryptMail(eid, to, sub, msg string) bool {
 		uiCallback.Error(BMErrSendFailed, err.Error())
 		return false
 	}
+
 	return false
 }

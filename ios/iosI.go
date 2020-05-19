@@ -16,7 +16,7 @@ const (
 	BMErrWalletInvalid
 	BMErrNoSuchBas
 	BMErrCryptFailed
-	BMErrSealFailed
+	BMErrInvalidJson
 	BMErrSendFailed
 )
 
