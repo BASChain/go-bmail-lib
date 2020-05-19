@@ -3,6 +3,7 @@ package bmailLib
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/BASChain/go-account"
 	"github.com/BASChain/go-bmail-protocol/bmp"
 	"github.com/google/uuid"
 )
@@ -19,6 +20,12 @@ type EnvelopeOfUI struct {
 }
 
 var bmClient *bmp.BMailClient = nil
+
+
+type MailSendCallBack interface {
+	Success(iv[]byte, enSub, enMsg string)
+	Error(typ int, msg string)
+}
 
 func NewMailClient() bool {
 
@@ -59,21 +66,39 @@ func SendMailJson(mailJson string) bool {
 	return true
 }
 
-func SendCryptMail(eid, to, sub, msg string) bool {
+func GetAddrByName(to string) string{
+	toAddr, _ := basResolver.BMailBCA(to)
+	if !toAddr.IsValid() {
+		uiCallback.Error(BMErrNoSuchBas, "can't find receiver's block chain info")
+		return ""
+	}
+
+	return toAddr.String()
+}
+
+func Encode(iv, key []byte, data []byte) []byte{
+	encoded, err := account.EncryptWithIV(key, iv, data)
+	if err != nil {
+		return nil
+	}
+	return encoded
+}
+
+func SendCryptMail(eid, to, sub, msg string, cb MailSendCallBack) bool {
 
 	if bmClient == nil {
-		uiCallback.Error(BMErrClientInvalid, "mail client is invalid")
+		cb.Error(BMErrClientInvalid, "mail client is invalid")
 		return false
 	}
 
 	if activeWallet == nil || !activeWallet.IsOpen() {
-		uiCallback.Error(BMErrWalletInvalid, "wallet is nil or locked")
+		cb.Error(BMErrWalletInvalid, "wallet is nil or locked")
 		return false
 	}
 
 	toAddr, _ := basResolver.BMailBCA(to)
 	if !toAddr.IsValid() {
-		uiCallback.Error(BMErrNoSuchBas, "can't find receiver's block chain info")
+		cb.Error(BMErrNoSuchBas, "can't find receiver's block chain info")
 		return false
 	}
 
@@ -91,7 +116,7 @@ func SendCryptMail(eid, to, sub, msg string) bool {
 	}
 
 	if err := bmClient.SendP2pMail(env); err != nil {
-		uiCallback.Error(BMErrSendFailed, err.Error())
+		cb.Error(BMErrSendFailed, err.Error())
 		return false
 	}
 
