@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/BASChain/go-account"
 	"github.com/BASChain/go-bmail-protocol/bmp"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/google/uuid"
 )
 
@@ -76,12 +77,20 @@ func GetAddrByName(to string) string{
 	return toAddr.String()
 }
 
-func Encode(iv, key []byte, data []byte) []byte{
-	encoded, err := account.EncryptWithIV(key, iv, data)
+func Encode(data string) string{
+	encoded, err := account.Encrypt(activeWallet.Seeds(), []byte(data))
 	if err != nil {
-		return nil
+		return ""
 	}
-	return encoded
+	return hexutil.Encode(encoded)
+}
+
+func Decode(data string) string{
+	decoded, err := account.Decrypt(activeWallet.Seeds(), []byte(data))
+	if err != nil {
+		return ""
+	}
+	return hexutil.Encode(decoded)
 }
 
 func SendCryptMail(eid, to, sub, msg string, cb MailSendCallBack) bool {
