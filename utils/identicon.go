@@ -15,8 +15,8 @@ func md5hash(s string) []byte {
 	return h.Sum(nil)
 }
 
-func GenIDIcon(rawStr string) []byte{
-	var data = md5hash("BM6MqKLq5rBJgHcR6w4p4GXuHSgBuCzxB7LVpRHWP16UTw")// hex.DecodeString("BM6MqKLq5rBJgHcR6w4p4GXuHSgBuCzxB7LVpRHWP16UTw")
+func GenIDIcon(rawStr string) []byte {
+	var data = md5hash(rawStr) // hex.DecodeString("BM6MqKLq5rBJgHcR6w4p4GXuHSgBuCzxB7LVpRHWP16UTw")
 	var config = Sigil{
 		Rows: 5,
 		Foreground: []color.NRGBA{
@@ -35,8 +35,8 @@ func GenIDIcon(rawStr string) []byte{
 
 	img := config.Make(420, false, data)
 	buf := new(bytes.Buffer)
-	if err := png.Encode(buf, img); err != nil{
+	if err := png.Encode(buf, img); err != nil {
 		panic(err)
 	}
-	return  buf.Bytes()
+	return buf.Bytes()
 }
