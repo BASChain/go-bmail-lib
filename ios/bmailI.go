@@ -22,9 +22,8 @@ type EnvelopeOfUI struct {
 
 var bmClient *bmp.BMailClient = nil
 
-
 type MailSendCallBack interface {
-	Success(iv[]byte, enSub, enMsg string)
+	Success(iv []byte, enSub, enMsg string)
 	Error(typ int, msg string)
 }
 
@@ -55,7 +54,7 @@ func NewMailClient() bool {
 	return true
 }
 
-func SendMailJson(mailJson string) bool {
+func SendMailJson(mailJson string, cb MailSendCallBack) bool {
 
 	fmt.Println(mailJson)
 	jsonMail := &EnvelopeOfUI{}
@@ -64,10 +63,45 @@ func SendMailJson(mailJson string) bool {
 		return false
 	}
 	fmt.Println(jsonMail)
+
+	if bmClient == nil {
+		cb.Error(BMErrClientInvalid, "mail client is invalid")
+		return false
+	}
+
+	if activeWallet == nil || !activeWallet.IsOpen() {
+		cb.Error(BMErrWalletInvalid, "wallet is nil or locked")
+		return false
+	}
+
+	toAddr, _ := basResolver.BMailBCA(jsonMail.TOs[0])
+	if !toAddr.IsValid() {
+		cb.Error(BMErrNoSuchBas, "can't find receiver's block chain info")
+		return false
+	}
+
+	env := &bmp.RawEnvelope{
+		EnvelopeHead: bmp.EnvelopeHead{
+			Eid:      uuid.MustParse(jsonMail.Eid),
+			From:     activeWallet.MailAddress(),
+			FromAddr: activeWallet.Address(),
+			To:       jsonMail.TOs[0],
+		},
+		EnvelopeBody: bmp.EnvelopeBody{
+			Subject: jsonMail.Subject,
+			MsgBody: jsonMail.MsgBody,
+		},
+	}
+
+	if err := bmClient.SendP2pMail(env); err != nil {
+		cb.Error(BMErrSendFailed, err.Error())
+		return false
+	}
+
 	return true
 }
 
-func GetAddrByName(to string) string{
+func GetAddrByName(to string) string {
 	toAddr, _ := basResolver.BMailBCA(to)
 	if !toAddr.IsValid() {
 		uiCallback.Error(BMErrNoSuchBas, "can't find receiver's block chain info")
@@ -77,7 +111,7 @@ func GetAddrByName(to string) string{
 	return toAddr.String()
 }
 
-func Encode(data string) string{
+func Encode(data string) string {
 	encoded, err := account.Encrypt(activeWallet.Seeds(), []byte(data))
 	if err != nil {
 		fmt.Println(err)
@@ -86,9 +120,9 @@ func Encode(data string) string{
 	return hexutil.Encode(encoded)
 }
 
-func Decode(data string) string{
+func Decode(data string) string {
 	d, err := hexutil.Decode(data)
-	if err != nil{
+	if err != nil {
 		fmt.Println(err)
 		return ""
 	}
@@ -136,5 +170,5 @@ func SendCryptMail(eid, to, sub, msg string, cb MailSendCallBack) bool {
 		return false
 	}
 
-	return false
+	return true
 }
