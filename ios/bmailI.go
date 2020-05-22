@@ -80,17 +80,24 @@ func GetAddrByName(to string) string{
 func Encode(data string) string{
 	encoded, err := account.Encrypt(activeWallet.Seeds(), []byte(data))
 	if err != nil {
+		fmt.Println(err)
 		return ""
 	}
 	return hexutil.Encode(encoded)
 }
 
 func Decode(data string) string{
-	decoded, err := account.Decrypt(activeWallet.Seeds(), []byte(data))
-	if err != nil {
+	d, err := hexutil.Decode(data)
+	if err != nil{
+		fmt.Println(err)
 		return ""
 	}
-	return hexutil.Encode(decoded)
+	decoded, err := account.Decrypt(activeWallet.Seeds(), d)
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+	return string(decoded)
 }
 
 func SendCryptMail(eid, to, sub, msg string, cb MailSendCallBack) bool {

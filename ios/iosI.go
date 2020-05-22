@@ -29,7 +29,7 @@ func InitSystem(cb UICallBack, debug bool) {
 }
 
 func CalculateHash(mailName string) string {
-	return resolver.BMailNameHash(mailName)
+	return resolver.GetHash(mailName).String()
 }
 
 func MailBcaByHash(mailHash string) string {
@@ -38,8 +38,7 @@ func MailBcaByHash(mailHash string) string {
 }
 
 func CName(mailName string) string {
-	mailHash := resolver.BMailNameHash(mailName)
-	_, cname := basResolver.BMailBCA(mailHash)
+	_, cname := basResolver.BMailBCA(mailName)
 	return cname
 }
 
