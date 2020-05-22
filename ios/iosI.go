@@ -32,8 +32,8 @@ func CalculateHash(mailName string) string {
 	return resolver.GetHash(mailName).String()
 }
 
-func MailBcaByHash(mailHash string) string {
-	bca, _ := basResolver.BMailBCA(mailHash)
+func MailBcaByMailName(mailName string) string {
+	bca, _ := basResolver.BMailBCA(mailName)
 	return string(bca)
 }
 
