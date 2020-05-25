@@ -126,18 +126,18 @@ func SendMailJson(mailJson string, cb MailSendCallBack) bool {
 	return true
 }
 
-func BPop(timeSince1970 int64, cb MailPopCallBack) string {
+func BPop(timeSince1970 int64, cb MailPopCallBack) []byte {
 
 	if activeWallet == nil || !activeWallet.IsOpen() {
 		cb.PopProcess(BMErrWalletInvalid, "wallet is nil or locked")
-		return ""
+		return nil
 	}
 	if bmClient == nil {
 		bc, err := newClient()
 		if err != nil {
 			fmt.Println(err.Error())
 			cb.PopProcess(BMErrClientInvalid, err.Error())
-			return ""
+			return nil
 		}
 		bc.Wallet = activeWallet
 		bmClient = bc
@@ -146,16 +146,21 @@ func BPop(timeSince1970 int64, cb MailPopCallBack) string {
 	envs, err := bmClient.ReceiveEnv(timeSince1970)
 	if err != nil {
 		cb.PopProcess(BMErrReceiveFailed, err.Error())
-		return ""
+		return nil
+	}
+
+	if envs == nil || len(envs) == 0 {
+		cb.PopProcess(BMErrNone, "No update data")
+		return nil
 	}
 
 	byts, err := json.Marshal(envs)
 	if err != nil {
 		cb.PopProcess(BMErrMarshFailed, err.Error())
-		return ""
+		return nil
 	}
-
-	return string(byts)
+	cb.PopProcess(BMErrNone, "got new mail")
+	return byts
 }
 
 func GetAddrByName(to string) string {
