@@ -10,6 +10,7 @@ import (
 	"github.com/BASChain/go-bmail-protocol/bmp/client"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/google/uuid"
+	"github.com/kprc/nbsnetwork/tools"
 	"time"
 )
 
@@ -22,7 +23,6 @@ type EnvelopeOfUI struct {
 	TOs      []string `json:"tos"`
 	CCs      []string `json:"ccs"`
 	BCCs     []string `json:"bccs"`
-	Date     string   `json:"date"`
 	MailType int8     `json:"mType"`
 }
 
@@ -103,7 +103,7 @@ func SendMailJson(mailJson string, cb MailSendCallBack) bool {
 			FromAddr: activeWallet.Address(),
 			To:       jsonMail.TOs[0],
 			ToAddr:   toAddr,
-			Date:     time.Now(),
+			Date:     time.Duration(tools.GetNowMsTime()),
 		},
 		EnvelopeBody: bmp.EnvelopeBody{
 			Subject: jsonMail.Subject,
