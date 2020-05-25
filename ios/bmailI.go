@@ -162,7 +162,7 @@ func BPop(timeSince1970 int64, cb MailPopCallBack) []byte {
 		return nil
 	}
 	fmt.Println(string(byts))
-	cb.PopProcess(BMErrNone, "New Mail got")
+	cb.PopProcess(BMErrNone, fmt.Sprintf("New Mail got[%d]", len(envs)))
 	return byts
 }
 
@@ -201,18 +201,18 @@ func Decode(data string) string {
 
 func DecodeForPeer(data, fromAddr string) string {
 	aesKey, err := activeWallet.AeskeyOf(bmail.Address(fromAddr).ToPubKey())
-	if err != nil{
+	if err != nil {
 		fmt.Println("DecodeForPeer ===AeskeyOf===>", err)
 		return ""
 	}
 
 	bb, err := base64.StdEncoding.DecodeString(data)
-	if err != nil{
+	if err != nil {
 		fmt.Println("DecodeForPeer ====DecodeString==>", err)
 		return ""
 	}
 	byts, err := account.Decrypt(aesKey, bb)
-	if err != nil{
+	if err != nil {
 		fmt.Println("DecodeForPeer ====Decrypt==>", err)
 		return ""
 	}
