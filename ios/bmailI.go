@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/BASChain/go-account"
+	"github.com/BASChain/go-bmail-account"
 	"github.com/BASChain/go-bmail-protocol/bmp"
 	"github.com/BASChain/go-bmail-protocol/bmp/client"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -195,4 +196,22 @@ func Decode(data string) string {
 		return ""
 	}
 	return string(decoded)
+}
+
+func DecodeForPeer(data, fromAddr string) string {
+
+	aesKey, err := activeWallet.AeskeyOf(bmail.Address(fromAddr).ToPubKey())
+	if err != nil{
+		fmt.Println("DecodeForPeer ===AeskeyOf===>", err)
+		return ""
+	}
+	fmt.Println("DecodeForPeer ======>", aesKey)
+
+	byts, err := account.Decrypt(aesKey, []byte(data))
+	if err != nil{
+		fmt.Println("DecodeForPeer ====Decrypt==>", err)
+		return ""
+	}
+	fmt.Println("DecodeForPeer ======>", byts)
+	return string(byts)
 }
