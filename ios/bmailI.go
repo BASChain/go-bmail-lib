@@ -1,6 +1,7 @@
 package bmailLib
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/BASChain/go-account"
@@ -199,19 +200,22 @@ func Decode(data string) string {
 }
 
 func DecodeForPeer(data, fromAddr string) string {
-
 	aesKey, err := activeWallet.AeskeyOf(bmail.Address(fromAddr).ToPubKey())
 	if err != nil{
 		fmt.Println("DecodeForPeer ===AeskeyOf===>", err)
 		return ""
 	}
-	fmt.Println("DecodeForPeer ======>", aesKey)
 
-	byts, err := account.Decrypt(aesKey, []byte(data))
+	bb, err := base64.StdEncoding.DecodeString(data)
+	if err != nil{
+		fmt.Println("DecodeForPeer ====DecodeString==>", err)
+		return ""
+	}
+	byts, err := account.Decrypt(aesKey, bb)
 	if err != nil{
 		fmt.Println("DecodeForPeer ====Decrypt==>", err)
 		return ""
 	}
-	fmt.Println("DecodeForPeer ======>", byts)
+	fmt.Println("DecodeForPeer ======>", byts, string(byts))
 	return string(byts)
 }
