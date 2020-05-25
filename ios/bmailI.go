@@ -159,7 +159,8 @@ func BPop(timeSince1970 int64, cb MailPopCallBack) []byte {
 		cb.PopProcess(BMErrMarshFailed, err.Error())
 		return nil
 	}
-	cb.PopProcess(BMErrNone, "got new mail")
+	fmt.Println(string(byts))
+	cb.PopProcess(BMErrNone, "New Mail got")
 	return byts
 }
 
