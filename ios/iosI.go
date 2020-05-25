@@ -15,9 +15,10 @@ const (
 	BMErrClientInvalid
 	BMErrWalletInvalid
 	BMErrNoSuchBas
-	BMErrCryptFailed
 	BMErrInvalidJson
 	BMErrSendFailed
+	BMErrReceiveFailed
+	BMErrMarshFailed
 )
 
 var uiCallback UICallBack
