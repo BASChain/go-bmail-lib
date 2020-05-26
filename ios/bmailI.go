@@ -137,7 +137,7 @@ func BPop(timeSince1970 int64, cb MailCallBack) []byte {
 		bmClient = bc
 	}
 
-	envs, err := bmClient.ReceiveEnv(timeSince1970 * 1000)//TODO:: seconds to milliseconds
+	envs, err := bmClient.ReceiveEnv(timeSince1970 * 1000) //TODO:: seconds to milliseconds
 	if err != nil {
 		cb.Process(BMErrReceiveFailed, err.Error())
 		return nil
@@ -207,6 +207,5 @@ func DecodeForPeer(data, fromAddr string) string {
 		fmt.Println("DecodeForPeer ====Decrypt==>", err)
 		return ""
 	}
-	fmt.Println("DecodeForPeer ======>", byts, string(byts))
 	return string(byts)
 }
