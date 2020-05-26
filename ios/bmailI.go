@@ -145,7 +145,7 @@ func BPop(timeSince1970 int64, cb MailPopCallBack) []byte {
 		bmClient = bc
 	}
 
-	envs, err := bmClient.ReceiveEnv(timeSince1970)
+	envs, err := bmClient.ReceiveEnv(timeSince1970 * 1000)//TODO:: seconds to milliseconds
 	if err != nil {
 		cb.PopProcess(BMErrReceiveFailed, err.Error())
 		return nil
