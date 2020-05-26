@@ -28,11 +28,8 @@ type EnvelopeOfUI struct {
 
 var bmClient *client.BMailClient = nil
 
-type MailSendCallBack interface {
-	MailSendProcess(typ int, msg string)
-}
-type MailPopCallBack interface {
-	PopProcess(typ int, msg string)
+type MailCallBack interface {
+	Process(typ int, msg string)
 }
 
 func newClient() (*client.BMailClient, error) {
@@ -61,10 +58,10 @@ func CloseClient() {
 	}
 }
 
-func SendMailJson(mailJson string, cb MailSendCallBack) bool {
+func SendMailJson(mailJson string, cb MailCallBack) bool {
 
 	if activeWallet == nil || !activeWallet.IsOpen() {
-		cb.MailSendProcess(BMErrWalletInvalid, "wallet is nil or locked")
+		cb.Process(BMErrWalletInvalid, "wallet is nil or locked")
 		return false
 	}
 
@@ -72,7 +69,7 @@ func SendMailJson(mailJson string, cb MailSendCallBack) bool {
 		bc, err := newClient()
 		if err != nil {
 			fmt.Println(err.Error())
-			cb.MailSendProcess(BMErrClientInvalid, err.Error())
+			cb.Process(BMErrClientInvalid, err.Error())
 			return false
 		}
 		bc.Wallet = activeWallet
@@ -87,7 +84,7 @@ func SendMailJson(mailJson string, cb MailSendCallBack) bool {
 	toAddr, _ := basResolver.BMailBCA(jsonMail.TOs[0])
 	if !toAddr.IsValid() {
 		fmt.Println("can't find receiver's block chain info")
-		cb.MailSendProcess(BMErrNoSuchBas, "can't find receiver's block chain info")
+		cb.Process(BMErrNoSuchBas, "can't find receiver's block chain info")
 		return false
 	}
 
@@ -109,31 +106,31 @@ func SendMailJson(mailJson string, cb MailSendCallBack) bool {
 	if jsonMail.MailType == bmp.BMailModeP2P {
 		if err := bmClient.SendP2pMail(env); err != nil {
 			fmt.Println(err.Error())
-			cb.MailSendProcess(BMErrSendFailed, err.Error())
+			cb.Process(BMErrSendFailed, err.Error())
 			return false
 		}
 	} else {
 		if err := bmClient.SendP2sMail(env); err != nil {
 			fmt.Println(err.Error())
-			cb.MailSendProcess(BMErrSendFailed, err.Error())
+			cb.Process(BMErrSendFailed, err.Error())
 			return false
 		}
 	}
-	cb.MailSendProcess(BMErrNone, "success")
+	cb.Process(BMErrNone, "success")
 	return true
 }
 
-func BPop(timeSince1970 int64, cb MailPopCallBack) []byte {
+func BPop(timeSince1970 int64, cb MailCallBack) []byte {
 
 	if activeWallet == nil || !activeWallet.IsOpen() {
-		cb.PopProcess(BMErrWalletInvalid, "wallet is nil or locked")
+		cb.Process(BMErrWalletInvalid, "wallet is nil or locked")
 		return nil
 	}
 	if bmClient == nil {
 		bc, err := newClient()
 		if err != nil {
 			fmt.Println(err.Error())
-			cb.PopProcess(BMErrClientInvalid, err.Error())
+			cb.Process(BMErrClientInvalid, err.Error())
 			return nil
 		}
 		bc.Wallet = activeWallet
@@ -142,22 +139,21 @@ func BPop(timeSince1970 int64, cb MailPopCallBack) []byte {
 
 	envs, err := bmClient.ReceiveEnv(timeSince1970 * 1000)//TODO:: seconds to milliseconds
 	if err != nil {
-		cb.PopProcess(BMErrReceiveFailed, err.Error())
+		cb.Process(BMErrReceiveFailed, err.Error())
 		return nil
 	}
 
 	if envs == nil || len(envs) == 0 {
-		cb.PopProcess(BMErrNone, "No update data")
+		cb.Process(BMErrNone, "No update data")
 		return nil
 	}
 
 	byts, err := json.Marshal(envs)
 	if err != nil {
-		cb.PopProcess(BMErrMarshFailed, err.Error())
+		cb.Process(BMErrMarshFailed, err.Error())
 		return nil
 	}
-	fmt.Println(string(byts))
-	cb.PopProcess(BMErrNone, fmt.Sprintf("New Mail got[%d]", len(envs)))
+	cb.Process(BMErrNone, fmt.Sprintf("New Mail got[%d]", len(envs)))
 	return byts
 }
 
