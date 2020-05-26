@@ -64,7 +64,6 @@ func CloseClient() {
 func SendMailJson(mailJson string, cb MailSendCallBack) bool {
 
 	if activeWallet == nil || !activeWallet.IsOpen() {
-		fmt.Println("wallet is nil or locked")
 		cb.MailSendProcess(BMErrWalletInvalid, "wallet is nil or locked")
 		return false
 	}
@@ -79,16 +78,12 @@ func SendMailJson(mailJson string, cb MailSendCallBack) bool {
 		bc.Wallet = activeWallet
 		bmClient = bc
 	}
-
-	fmt.Println(mailJson)
 	jsonMail := &EnvelopeOfUI{}
 	if err := json.Unmarshal([]byte(mailJson), jsonMail); err != nil {
 		fmt.Println("mail json data is invalid", err)
 		uiCallback.Error(BMErrInvalidJson, err.Error())
 		return false
 	}
-	fmt.Println(jsonMail)
-
 	toAddr, _ := basResolver.BMailBCA(jsonMail.TOs[0])
 	if !toAddr.IsValid() {
 		fmt.Println("can't find receiver's block chain info")
@@ -124,7 +119,7 @@ func SendMailJson(mailJson string, cb MailSendCallBack) bool {
 			return false
 		}
 	}
-	fmt.Println("success------->")
+	cb.MailSendProcess(BMErrNone, "success")
 	return true
 }
 
