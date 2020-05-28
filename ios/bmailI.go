@@ -10,8 +10,6 @@ import (
 	"github.com/BASChain/go-bmail-protocol/bmp/client"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/google/uuid"
-	"github.com/kprc/nbsnetwork/tools"
-	"time"
 )
 
 type EnvelopeOfUI struct {
@@ -95,7 +93,6 @@ func SendMailJson(mailJson string, cb MailCallBack) bool {
 			FromAddr: activeWallet.Address(),
 			To:       jsonMail.TOs[0],
 			ToAddr:   toAddr,
-			Date:     time.Duration(tools.GetNowMsTime()),
 		},
 		EnvelopeBody: bmp.EnvelopeBody{
 			Subject: jsonMail.Subject,
@@ -137,7 +134,7 @@ func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBa
 		bmClient = bc
 	}
 
-	envs, err := bmClient.ReceiveEnv(timeSince1970 * 1000, olderThanSince, pieceSize) //TODO:: seconds to milliseconds
+	envs, err := bmClient.ReceiveEnv(timeSince1970, olderThanSince, pieceSize) //TODO:: seconds to milliseconds
 	if err != nil {
 		cb.Process(BMErrReceiveFailed, err.Error())
 		return nil
@@ -153,6 +150,7 @@ func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBa
 		cb.Process(BMErrMarshFailed, err.Error())
 		return nil
 	}
+	//fmt.Println(string(byts))
 	cb.Process(BMErrNone, fmt.Sprintf("New Mail got[%d]", len(envs)))
 	return byts
 }
