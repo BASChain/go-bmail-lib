@@ -120,7 +120,7 @@ func SendMailJson(mailJson string, cb MailCallBack) bool {
 	return true
 }
 
-func BPop(timeSince1970 int64, cb MailCallBack) []byte {
+func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBack) []byte {
 
 	if activeWallet == nil || !activeWallet.IsOpen() {
 		cb.Process(BMErrWalletInvalid, "wallet is nil or locked")
@@ -137,7 +137,7 @@ func BPop(timeSince1970 int64, cb MailCallBack) []byte {
 		bmClient = bc
 	}
 
-	envs, err := bmClient.ReceiveEnv(timeSince1970 * 1000) //TODO:: seconds to milliseconds
+	envs, err := bmClient.ReceiveEnv(timeSince1970 * 1000, olderThanSince, pieceSize) //TODO:: seconds to milliseconds
 	if err != nil {
 		cb.Process(BMErrReceiveFailed, err.Error())
 		return nil
