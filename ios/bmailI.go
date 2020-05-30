@@ -9,7 +9,6 @@ import (
 	"github.com/BASChain/go-bmail-protocol/bmp"
 	"github.com/BASChain/go-bmail-protocol/bmp/client"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/google/uuid"
 )
 
 type EnvelopeOfUI struct {
@@ -21,13 +20,87 @@ type EnvelopeOfUI struct {
 	TOs      []string `json:"tos"`
 	CCs      []string `json:"ccs"`
 	BCCs     []string `json:"bccs"`
-	MailType int8     `json:"mType"`
+	PinCode  []byte   `json:"pin"`
 }
 
 var bmClient *client.BMailClient = nil
 
 type MailCallBack interface {
 	Process(typ int, msg string)
+}
+
+func fullFillRcpt(mailNames []string, typ int8, pinCode []byte) ([]*bmp.Recipient, error) {
+	rcpts := make([]*bmp.Recipient, 0)
+
+	for _, name := range mailNames {
+
+		toAddr, _ := basResolver.BMailBCA(name)
+		if !toAddr.IsValid() {
+			return nil, fmt.Errorf("can't find rcpt[%s] block chain info", name)
+		}
+
+		aesKey, err := activeWallet.AeskeyOf(toAddr.ToPubKey())
+		if err != nil {
+			return nil, err
+		}
+
+		iv, err := bmp.NewIV()
+		if err != nil {
+			return nil, err
+		}
+
+		encodePin, err := account.EncryptWithIV(aesKey, iv.Bytes(), pinCode)
+		if err != nil {
+			return nil, err
+		}
+
+		rcpt := &bmp.Recipient{
+			ToName:   name,
+			ToAddr:   toAddr,
+			RcptType: typ,
+			AESKey:   encodePin,
+		}
+		rcpts = append(rcpts, rcpt)
+	}
+
+	return rcpts, nil
+}
+
+func (eui *EnvelopeOfUI) Seal() (*bmp.BMailEnvelope, error) {
+
+	rcpts := make([]*bmp.Recipient, 0)
+	if len(eui.TOs) > 0 {
+		tos, err := fullFillRcpt(eui.TOs, bmp.RcpTypeTo, eui.PinCode)
+		if err != nil {
+			return nil, err
+		}
+		rcpts = append(rcpts, tos...)
+	}
+
+	if len(eui.CCs) > 0 {
+		ccs, err := fullFillRcpt(eui.CCs, bmp.RcpTypeCC, eui.PinCode)
+		if err != nil {
+			return nil, err
+		}
+		rcpts = append(rcpts, ccs...)
+	}
+
+	if len(eui.BCCs) > 0 {
+		bccs, err := fullFillRcpt(eui.BCCs, bmp.RcpTypeBcc, eui.PinCode)
+		if err != nil {
+			return nil, err
+		}
+		rcpts = append(rcpts, bccs...)
+	}
+	env := &bmp.BMailEnvelope{
+		Eid:      eui.Eid,
+		From:     eui.FromName,
+		FromAddr: bmail.Address(eui.From),
+		RCPTs:    rcpts,
+		Subject:  eui.Subject,
+		MailBody: eui.MsgBody,
+	}
+	return env, nil
 }
 
 func newClient() (*client.BMailClient, error) {
@@ -56,62 +129,46 @@ func CloseClient() {
 	}
 }
 
-func SendMailJson(mailJson string, cb MailCallBack) bool {
-
+func validate(cb MailCallBack) error {
 	if activeWallet == nil || !activeWallet.IsOpen() {
 		cb.Process(BMErrWalletInvalid, "wallet is nil or locked")
-		return false
+		return fmt.Errorf("wallet is nil or locked")
 	}
 
 	if bmClient == nil {
 		bc, err := newClient()
 		if err != nil {
-			fmt.Println(err.Error())
 			cb.Process(BMErrClientInvalid, err.Error())
-			return false
+			return err
 		}
 		bc.Wallet = activeWallet
 		bmClient = bc
 	}
+	return nil
+}
+
+func SendMailJson(mailJson string, cb MailCallBack) bool {
+	if err := validate(cb); err != nil {
+		cb.Process(BMErrClientInvalid, err.Error())
+		return false
+	}
+
 	jsonMail := &EnvelopeOfUI{}
 	if err := json.Unmarshal([]byte(mailJson), jsonMail); err != nil {
-		fmt.Println("mail json data is invalid", err)
 		uiCallback.Error(BMErrInvalidJson, err.Error())
 		return false
 	}
-	toAddr, _ := basResolver.BMailBCA(jsonMail.TOs[0])
-	if !toAddr.IsValid() {
-		fmt.Println("can't find receiver's block chain info")
-		cb.Process(BMErrNoSuchBas, "can't find receiver's block chain info")
+
+	env, err := jsonMail.Seal()
+	if err != nil {
+		cb.Process(BMErrClientInvalid, err.Error())
 		return false
 	}
 
-	env := &bmp.RawEnvelope{
-		EnvelopeHead: bmp.EnvelopeHead{
-			Eid:      uuid.MustParse(jsonMail.Eid),
-			From:     activeWallet.MailAddress(),
-			FromAddr: activeWallet.Address(),
-			To:       jsonMail.TOs[0],
-			ToAddr:   toAddr,
-		},
-		EnvelopeBody: bmp.EnvelopeBody{
-			Subject: jsonMail.Subject,
-			MsgBody: jsonMail.MsgBody,
-		},
-	}
-
-	if jsonMail.MailType == bmp.BMailModeP2P {
-		if err := bmClient.SendP2pMail(env); err != nil {
-			fmt.Println(err.Error())
-			cb.Process(BMErrSendFailed, err.Error())
-			return false
-		}
-	} else {
-		if err := bmClient.SendP2sMail(env); err != nil {
-			fmt.Println(err.Error())
-			cb.Process(BMErrSendFailed, err.Error())
-			return false
-		}
+	if err := bmClient.SendMail(env); err != nil {
+		fmt.Println(err.Error())
+		cb.Process(BMErrSendFailed, err.Error())
+		return false
 	}
 	cb.Process(BMErrNone, "success")
 	return true
@@ -119,19 +176,9 @@ func SendMailJson(mailJson string, cb MailCallBack) bool {
 
 func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBack) []byte {
 
-	if activeWallet == nil || !activeWallet.IsOpen() {
-		cb.Process(BMErrWalletInvalid, "wallet is nil or locked")
+	if err := validate(cb); err != nil {
+		cb.Process(BMErrClientInvalid, err.Error())
 		return nil
-	}
-	if bmClient == nil {
-		bc, err := newClient()
-		if err != nil {
-			fmt.Println(err.Error())
-			cb.Process(BMErrClientInvalid, err.Error())
-			return nil
-		}
-		bc.Wallet = activeWallet
-		bmClient = bc
 	}
 
 	envs, err := bmClient.ReceiveEnv(timeSince1970, olderThanSince, pieceSize) //TODO:: seconds to milliseconds
