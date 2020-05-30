@@ -13,14 +13,15 @@ import (
 
 type EnvelopeOfUI struct {
 	Eid      string   `json:"eid"`
-	Subject  string   `json:"sub"`
-	MsgBody  string   `json:"msg"`
+	Subject  string   `json:"subject"`
+	MsgBody  string   `json:"mailBody"`
 	From     string   `json:"from"`
 	FromName string   `json:"fromName"`
 	TOs      []string `json:"tos"`
 	CCs      []string `json:"ccs"`
 	BCCs     []string `json:"bccs"`
 	PinCode  []byte   `json:"pin"`
+	PreEid      string   `json:"preEid"`
 }
 
 var bmClient *client.BMailClient = nil
@@ -44,11 +45,7 @@ func fullFillRcpt(mailNames []string, typ int8, pinCode []byte) ([]*bmp.Recipien
 			return nil, err
 		}
 
-		iv, err := bmp.NewIV()
-		if err != nil {
-			return nil, err
-		}
-
+		iv := bmp.NewIV()
 		encodePin, err := account.EncryptWithIV(aesKey, iv.Bytes(), pinCode)
 		if err != nil {
 			return nil, err
@@ -152,7 +149,7 @@ func SendMailJson(mailJson string, cb MailCallBack) bool {
 		cb.Process(BMErrClientInvalid, err.Error())
 		return false
 	}
-
+	fmt.Println("======>Before send mail:=>", mailJson)
 	jsonMail := &EnvelopeOfUI{}
 	if err := json.Unmarshal([]byte(mailJson), jsonMail); err != nil {
 		uiCallback.Error(BMErrInvalidJson, err.Error())
@@ -212,8 +209,8 @@ func GetAddrByName(to string) string {
 	return toAddr.String()
 }
 
-func Encode(data string) string {
-	encoded, err := account.Encrypt(activeWallet.Seeds(), []byte(data))
+func Encode(data string, iv []byte) string {
+	encoded, err := account.EncryptWithIV(activeWallet.Seeds(), iv, []byte(data))
 	if err != nil {
 		fmt.Println(err)
 		return ""
@@ -253,4 +250,8 @@ func DecodeForPeer(data, fromAddr string) string {
 		return ""
 	}
 	return string(byts)
+}
+
+func PinCode()[]byte{
+	return (bmp.NewIV())[:]
 }
