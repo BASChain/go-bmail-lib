@@ -103,10 +103,10 @@ func (eui *EnvelopeOfUI) Seal() (*bmp.BMailEnvelope, error) {
 func (eui *EnvelopeOfUI) ToString() string {
 	return fmt.Sprintf(
 		"\n================EnvelopeOfUI============================" +
-		"\n\tEid:\t%40s" +
-		"\n\tFromName:\t%40s" +
-		"\n\tFrom:\t%40s" +
-		"\n\tPinCode:\t%40x" +
+		"\n\tEid:\t%20s" +
+		"\n\tFromName:\t%20s" +
+		"\n\tFrom:\t%20s" +
+		"\n\tPinCode:\t%20x" +
 		"\n===========================================================",
 		eui.Eid,
 		eui.FromName,
@@ -169,14 +169,14 @@ func SendMailJson(mailJson string, cb MailCallBack) bool {
 		uiCallback.Error(BMErrInvalidJson, err.Error())
 		return false
 	}
-	fmt.Println("======EnvelopeOfUI mail:=>", jsonMail.ToString())
+	fmt.Println(jsonMail.ToString())
 
 	env, err := jsonMail.Seal()
 	if err != nil {
 		cb.Process(BMErrClientInvalid, err.Error())
 		return false
 	}
-	fmt.Println("======>BMailEnvelope:=>", env.ToString())
+	fmt.Println(env.ToString())
 
 	if err := bmClient.SendMail(env); err != nil {
 		fmt.Println(err.Error())
