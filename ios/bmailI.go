@@ -12,16 +12,16 @@ import (
 )
 
 type EnvelopeOfUI struct {
-	Eid      string   `json:"eid"`
-	Subject  string   `json:"subject"`
-	MsgBody  string   `json:"mailBody"`
-	From     string   `json:"from"`
-	FromName string   `json:"fromName"`
-	TOs      []string `json:"tos"`
-	CCs      []string `json:"ccs"`
-	BCCs     []string `json:"bccs"`
-	PinCode  []byte   `json:"pin"`
-	PreEid	 string   `json:"preEid"`
+	Eid       string   `json:"eid"`
+	Subject   string   `json:"subject"`
+	MsgBody   string   `json:"mailBody"`
+	FromAddr  string   `json:"fromAddr"`
+	FromName  string   `json:"fromName"`
+	TOs       []string `json:"tos"`
+	CCs       []string `json:"ccs"`
+	BCCs      []string `json:"bccs"`
+	PinCode   []byte   `json:"pin"`
+	SessionID string   `json:"sessionID"`
 }
 
 var bmClient *client.BMailClient = nil
@@ -91,8 +91,8 @@ func (eui *EnvelopeOfUI) Seal() (*bmp.BMailEnvelope, error) {
 	}
 	env := &bmp.BMailEnvelope{
 		Eid:      eui.Eid,
-		From:     eui.FromName,
-		FromAddr: bmail.Address(eui.From),
+		FromName:     eui.FromName,
+		FromAddr: bmail.Address(eui.FromAddr),
 		RCPTs:    rcpts,
 		Subject:  eui.Subject,
 		MailBody: eui.MsgBody,
@@ -102,16 +102,28 @@ func (eui *EnvelopeOfUI) Seal() (*bmp.BMailEnvelope, error) {
 
 func (eui *EnvelopeOfUI) ToString() string {
 	return fmt.Sprintf(
-		"\n================EnvelopeOfUI============================" +
+		"\n======================EnvelopeOfUI=========================" +
 		"\n\tEid:\t%20s" +
 		"\n\tFromName:\t%20s" +
-		"\n\tFrom:\t%20s" +
+		"\n\tFromAddr:\t%20s" +
 		"\n\tPinCode:\t%20x" +
+		"\n\tSessoinID:\t%20x" +
+		"\n\tTOs:\t%20s" +
+		"\n\tCCs:\t%20s" +
+		"\n\tBCCs:\t%20s" +
+		"\n\tSubject:\t%20s" +
+		"\n\tMsgBody:\t%20s" +
 		"\n===========================================================",
 		eui.Eid,
 		eui.FromName,
-		eui.From,
-		eui.PinCode)
+		eui.FromAddr,
+		eui.PinCode,
+		eui.SessionID,
+		eui.TOs,
+		eui.CCs,
+		eui.BCCs,
+		eui.Subject,
+		eui.MsgBody)
 }
 
 func newClient() (*client.BMailClient, error) {
