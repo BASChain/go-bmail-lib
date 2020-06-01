@@ -101,12 +101,13 @@ func (eui *EnvelopeOfUI) Seal() (*bmp.BMailEnvelope, error) {
 }
 
 func (eui *EnvelopeOfUI) ToString() string {
-	return fmt.Sprintf("\n================EnvelopeOfUI================" +
-		"\n\tEid:%40s" +
-		"\n\tFromName:%40s" +
-		"\n\tFrom:%40s" +
-		"\n\tPinCode:%x" +
-		"\n================================",
+	return fmt.Sprintf(
+		"\n================EnvelopeOfUI============================" +
+		"\n\tEid:\t%40s" +
+		"\n\tFromName:\t%40s" +
+		"\n\tFrom:\t%40s" +
+		"\n\tPinCode:\t%40x" +
+		"\n===========================================================",
 		eui.Eid,
 		eui.FromName,
 		eui.From,
