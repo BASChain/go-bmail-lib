@@ -172,7 +172,6 @@ func validate(cb MailCallBack) error {
 
 func SendMailJson(mailJson string, cb MailCallBack) bool {
 	if err := validate(cb); err != nil {
-		cb.Process(BMErrClientInvalid, err.Error())
 		return false
 	}
 	fmt.Println("======>Before send mail:=>", mailJson)
@@ -202,7 +201,6 @@ func SendMailJson(mailJson string, cb MailCallBack) bool {
 func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBack) []byte {
 
 	if err := validate(cb); err != nil {
-		cb.Process(BMErrClientInvalid, err.Error())
 		return nil
 	}
 
