@@ -34,8 +34,9 @@ func CalculateHash(mailName string) string {
 }
 
 func MailBcaByMailName(mailName string) string {
-	bca, _ := basResolver.BMailBCA(mailName)
-	return string(bca)
+	bca, cname := basResolver.BMailBCA(mailName)
+	return string(bca) + "," + cname
+
 }
 
 func CName(mailName string) string {
