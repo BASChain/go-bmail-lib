@@ -1,6 +1,7 @@
 package bmailLib
 
 import (
+	"fmt"
 	"github.com/BASChain/go-bmail-lib/utils"
 	"github.com/BASChain/go-bmail-resolver"
 )
@@ -35,8 +36,12 @@ func CalculateHash(mailName string) string {
 
 func MailBcaByMailName(mailName string) string {
 	bca, cname := basResolver.BMailBCA(mailName)
-	return string(bca) + "," + cname
-
+	if !bca.IsValid() {
+		return ""
+	}
+	result := string(bca) + "," + cname
+	fmt.Println("mail's block chain data:=>", result)
+	return result
 }
 
 func CName(mailName string) string {

@@ -225,16 +225,6 @@ func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBa
 	return byts
 }
 
-func GetAddrByName(to string) string {
-	toAddr, _ := basResolver.BMailBCA(to)
-	if !toAddr.IsValid() {
-		uiCallback.Error(BMErrNoSuchBas, "can't find receiver's block chain info")
-		return ""
-	}
-
-	return toAddr.String()
-}
-
 func Encode(data string, iv []byte) string {
 	encoded, err := account.EncryptWithIV(activeWallet.Seeds(), iv, []byte(data))
 	if err != nil {
