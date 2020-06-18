@@ -11,17 +11,26 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
+type RcptOfUI struct {
+	MailName string `json:"name"`
+	MailAddr string `json:"address"`
+	Typ      int8   `json:"type"`
+}
+
+func (uir *RcptOfUI) String() string {
+	return fmt.Sprintf("[name:(%s) address:(%s) type:(%d)]",
+		uir.MailName, uir.MailAddr, uir.Typ)
+}
+
 type EnvelopeOfUI struct {
-	Eid       string   `json:"eid"`
-	Subject   string   `json:"subject"`
-	MsgBody   string   `json:"mailBody"`
-	FromAddr  string   `json:"fromAddr"`
-	FromName  string   `json:"fromName"`
-	TOs       []string `json:"tos"`
-	CCs       []string `json:"ccs"`
-	BCCs      []string `json:"bccs"`
-	PinCode   []byte   `json:"pin"`
-	SessionID string   `json:"sessionID"`
+	Eid       string      `json:"eid"`
+	Subject   string      `json:"subject"`
+	MsgBody   string      `json:"mailBody"`
+	FromAddr  string      `json:"fromAddr"`
+	FromName  string      `json:"from"`
+	RCPTs     []*RcptOfUI `json:"rcpts"`
+	PinCode   []byte      `json:"pin"`
+	SessionID string      `json:"sessionID"`
 }
 
 var bmClient *client.BMailClient = nil
@@ -30,14 +39,13 @@ type MailCallBack interface {
 	Process(typ int, msg string)
 }
 
-func fullFillRcpt(mailNames []string, typ int8, pinCode []byte) ([]*bmp.Recipient, error) {
+func fullFillRcpt(uircpts []*RcptOfUI, pinCode []byte) ([]*bmp.Recipient, error) {
 	rcpts := make([]*bmp.Recipient, 0)
 
-	for _, name := range mailNames {
-
-		toAddr, _ := basResolver.BMailBCA(name)
+	for _, uir := range uircpts {
+		toAddr := bmail.Address(uir.MailAddr)
 		if !toAddr.IsValid() {
-			return nil, fmt.Errorf("can't find rcpt[%s] block chain info", name)
+			return nil, fmt.Errorf("invalid peer address[%s]", toAddr)
 		}
 
 		aesKey, err := activeWallet.AeskeyOf(toAddr.ToPubKey())
@@ -52,9 +60,9 @@ func fullFillRcpt(mailNames []string, typ int8, pinCode []byte) ([]*bmp.Recipien
 		}
 
 		rcpt := &bmp.Recipient{
-			ToName:   name,
+			ToName:   uir.MailName,
 			ToAddr:   toAddr,
-			RcptType: typ,
+			RcptType: uir.Typ,
 			AESKey:   encodePin,
 		}
 		rcpts = append(rcpts, rcpt)
@@ -65,33 +73,13 @@ func fullFillRcpt(mailNames []string, typ int8, pinCode []byte) ([]*bmp.Recipien
 
 func (eui *EnvelopeOfUI) Seal() (*bmp.BMailEnvelope, error) {
 
-	rcpts := make([]*bmp.Recipient, 0)
-	if len(eui.TOs) > 0 {
-		tos, err := fullFillRcpt(eui.TOs, bmp.RcpTypeTo, eui.PinCode)
-		if err != nil {
-			return nil, err
-		}
-		rcpts = append(rcpts, tos...)
-	}
-
-	if len(eui.CCs) > 0 {
-		ccs, err := fullFillRcpt(eui.CCs, bmp.RcpTypeCC, eui.PinCode)
-		if err != nil {
-			return nil, err
-		}
-		rcpts = append(rcpts, ccs...)
-	}
-
-	if len(eui.BCCs) > 0 {
-		bccs, err := fullFillRcpt(eui.BCCs, bmp.RcpTypeBcc, eui.PinCode)
-		if err != nil {
-			return nil, err
-		}
-		rcpts = append(rcpts, bccs...)
+	rcpts, err := fullFillRcpt(eui.RCPTs, eui.PinCode)
+	if err != nil {
+		return nil, err
 	}
 	env := &bmp.BMailEnvelope{
 		Eid:      eui.Eid,
-		FromName:     eui.FromName,
+		FromName: eui.FromName,
 		FromAddr: bmail.Address(eui.FromAddr),
 		RCPTs:    rcpts,
 		Subject:  eui.Subject,
@@ -101,29 +89,29 @@ func (eui *EnvelopeOfUI) Seal() (*bmp.BMailEnvelope, error) {
 }
 
 func (eui *EnvelopeOfUI) ToString() string {
-	return fmt.Sprintf(
-		"\n======================EnvelopeOfUI=========================" +
-		"\n\tEid:\t%20s" +
-		"\n\tFromName:\t%20s" +
-		"\n\tFromAddr:\t%20s" +
-		"\n\tPinCode:\t%20x" +
-		"\n\tSessoinID:\t%20x" +
-		"\n\tTOs:\t%20s" +
-		"\n\tCCs:\t%20s" +
-		"\n\tBCCs:\t%20s" +
-		"\n\tSubject:\t%20s" +
-		"\n\tMsgBody:\t%20s" +
-		"\n===========================================================",
+	str := fmt.Sprintf(
+		"\n======================EnvelopeOfUI========================="+
+			"\n\tEid:\t%20s"+
+			"\n\tFromName:\t%20s"+
+			"\n\tFromAddr:\t%20s"+
+			"\n\tPinCode:\t%20x"+
+			"\n\tSessoinID:\t%20x"+
+			"\n\tRCPTs:\t%20d"+
+			"\n\tSubject:\t%20s"+
+			"\n\tMsgBody:\t%20s"+
+			"\n===========================================================",
 		eui.Eid,
 		eui.FromName,
 		eui.FromAddr,
 		eui.PinCode,
 		eui.SessionID,
-		eui.TOs,
-		eui.CCs,
-		eui.BCCs,
+		len(eui.RCPTs),
 		eui.Subject,
 		eui.MsgBody)
+	for _, uir := range eui.RCPTs {
+		str += fmt.Sprintf("\n%s\n", uir.String())
+	}
+	return str
 }
 
 func newClient() (*client.BMailClient, error) {
@@ -268,6 +256,6 @@ func DecodeForPeer(data, fromAddr string) string {
 	return string(byts)
 }
 
-func PinCode()[]byte{
+func PinCode() []byte {
 	return (bmp.NewIV())[:]
 }
