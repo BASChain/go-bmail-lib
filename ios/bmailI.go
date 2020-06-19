@@ -178,7 +178,7 @@ func SendMailJson(mailJson string, cb MailCallBack) bool {
 	fmt.Println(env.ToString())
 
 	if err := bmClient.SendMail(env); err != nil {
-		fmt.Println(err.Error())
+		fmt.Println("======>SendMail failed:", err.Error())
 		cb.Process(BMErrSendFailed, err.Error())
 		return false
 	}
