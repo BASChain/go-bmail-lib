@@ -1,7 +1,6 @@
 package bmailLib
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/BASChain/go-account"
@@ -89,7 +88,7 @@ func SendMailJson(mailJson string, pinCode []byte, cb MailCallBack) bool {
 		uiCallback.Error(BMErrInvalidJson, err.Error())
 		return false
 	}
-	if err := fullFillRcpt(jsonMail.RCPTs, pinCode); err != nil{
+	if err := fullFillRcpt(jsonMail.RCPTs, pinCode); err != nil {
 		cb.Process(BMErrInvalidJson, err.Error())
 		return false
 	}
@@ -153,24 +152,32 @@ func Decode(data string) string {
 	return string(decoded)
 }
 
-func DecodeForPeer(data, fromAddr string) string {
+func DecodeByPin(data string, pinCode []byte) string {
+	d, err := hexutil.Decode(data)
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+	decoded, err := account.Decrypt(pinCode, d)
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+	return string(decoded)
+}
+
+func DecodePinByPeer(codedPin []byte, fromAddr string) []byte {
 	aesKey, err := activeWallet.AeskeyOf(bmail.Address(fromAddr).ToPubKey())
 	if err != nil {
 		fmt.Println("DecodeForPeer ===AeskeyOf===>", err)
-		return ""
+		return nil
 	}
-
-	bb, err := base64.StdEncoding.DecodeString(data)
-	if err != nil {
-		fmt.Println("DecodeForPeer ====DecodeString==>", err)
-		return ""
-	}
-	byts, err := account.Decrypt(aesKey, bb)
+	pinCode, err := account.Decrypt(aesKey, codedPin)
 	if err != nil {
 		fmt.Println("DecodeForPeer ====Decrypt==>", err)
-		return ""
+		return nil
 	}
-	return string(byts)
+	return pinCode
 }
 
 func PinCode() []byte {
