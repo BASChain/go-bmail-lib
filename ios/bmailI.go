@@ -11,107 +11,28 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-type RcptOfUI struct {
-	MailName string `json:"name"`
-	MailAddr string `json:"address"`
-	Typ      int8   `json:"type"`
-}
-
-func (uir *RcptOfUI) String() string {
-	return fmt.Sprintf("[name:(%s) address:(%s) type:(%d)]",
-		uir.MailName, uir.MailAddr, uir.Typ)
-}
-
-type EnvelopeOfUI struct {
-	Eid       string      `json:"eid"`
-	Subject   string      `json:"subject"`
-	MsgBody   string      `json:"mailBody"`
-	FromAddr  string      `json:"fromAddr"`
-	FromName  string      `json:"from"`
-	RCPTs     []*RcptOfUI `json:"rcpts"`
-	PinCode   []byte      `json:"pin"`
-	SessionID string      `json:"sessionID"`
-}
-
 var bmClient *client.BMailClient = nil
 
 type MailCallBack interface {
 	Process(typ int, msg string)
 }
 
-func fullFillRcpt(uircpts []*RcptOfUI, pinCode []byte) ([]*bmp.Recipient, error) {
-	rcpts := make([]*bmp.Recipient, 0)
+func fullFillRcpt(rcpts []*bmp.Recipient, pinCode []byte) error {
 
-	for _, uir := range uircpts {
-		toAddr := bmail.Address(uir.MailAddr)
-		if !toAddr.IsValid() {
-			return nil, fmt.Errorf("invalid peer address[%s]", toAddr)
-		}
-
-		aesKey, err := activeWallet.AeskeyOf(toAddr.ToPubKey())
+	for _, uir := range rcpts {
+		aesKey, err := activeWallet.AeskeyOf(uir.ToAddr.ToPubKey())
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		iv := bmp.NewIV()
 		encodePin, err := account.EncryptWithIV(aesKey, iv.Bytes(), pinCode)
 		if err != nil {
-			return nil, err
+			return err
 		}
-
-		rcpt := &bmp.Recipient{
-			ToName:   uir.MailName,
-			ToAddr:   toAddr,
-			RcptType: uir.Typ,
-			AESKey:   encodePin,
-		}
-		rcpts = append(rcpts, rcpt)
+		uir.AESKey = encodePin
 	}
-
-	return rcpts, nil
-}
-
-func (eui *EnvelopeOfUI) Seal() (*bmp.BMailEnvelope, error) {
-
-	rcpts, err := fullFillRcpt(eui.RCPTs, eui.PinCode)
-	if err != nil {
-		return nil, err
-	}
-	env := &bmp.BMailEnvelope{
-		Eid:      eui.Eid,
-		FromName: eui.FromName,
-		FromAddr: bmail.Address(eui.FromAddr),
-		RCPTs:    rcpts,
-		Subject:  eui.Subject,
-		MailBody: eui.MsgBody,
-	}
-	return env, nil
-}
-
-func (eui *EnvelopeOfUI) ToString() string {
-	str := fmt.Sprintf(
-		"\n======================EnvelopeOfUI========================="+
-			"\n\tEid:\t%20s"+
-			"\n\tFromName:\t%20s"+
-			"\n\tFromAddr:\t%20s"+
-			"\n\tPinCode:\t%20x"+
-			"\n\tSessoinID:\t%20x"+
-			"\n\tRCPTs:\t%20d"+
-			"\n\tSubject:\t%20s"+
-			"\n\tMsgBody:\t%20s"+
-			"\n===========================================================",
-		eui.Eid,
-		eui.FromName,
-		eui.FromAddr,
-		eui.PinCode,
-		eui.SessionID,
-		len(eui.RCPTs),
-		eui.Subject,
-		eui.MsgBody)
-	for _, uir := range eui.RCPTs {
-		str += fmt.Sprintf("\n%s\n", uir.String())
-	}
-	return str
+	return nil
 }
 
 func newClient() (*client.BMailClient, error) {
@@ -158,26 +79,22 @@ func validate(cb MailCallBack) error {
 	return nil
 }
 
-func SendMailJson(mailJson string, cb MailCallBack) bool {
+func SendMailJson(mailJson string, pinCode []byte, cb MailCallBack) bool {
 	if err := validate(cb); err != nil {
 		return false
 	}
 	fmt.Println("======>Before send mail:=>", mailJson)
-	jsonMail := &EnvelopeOfUI{}
+	jsonMail := &bmp.BMailEnvelope{}
 	if err := json.Unmarshal([]byte(mailJson), jsonMail); err != nil {
 		uiCallback.Error(BMErrInvalidJson, err.Error())
 		return false
 	}
-	fmt.Println(jsonMail.ToString())
-
-	env, err := jsonMail.Seal()
-	if err != nil {
-		cb.Process(BMErrClientInvalid, err.Error())
+	if err := fullFillRcpt(jsonMail.RCPTs, pinCode); err != nil{
+		cb.Process(BMErrInvalidJson, err.Error())
 		return false
 	}
-	fmt.Println(env.ToString())
-
-	if err := bmClient.SendMail(env); err != nil {
+	fmt.Println(jsonMail.ToString())
+	if err := bmClient.SendMail(jsonMail); err != nil {
 		fmt.Println("======>SendMail failed:", err.Error())
 		cb.Process(BMErrSendFailed, err.Error())
 		return false
@@ -192,7 +109,7 @@ func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBa
 		return nil
 	}
 
-	envs, err := bmClient.ReceiveEnv(timeSince1970, olderThanSince, pieceSize) //TODO:: seconds to milliseconds
+	envs, err := bmClient.ReceiveEnv(timeSince1970, olderThanSince, pieceSize)
 	if err != nil {
 		cb.Process(BMErrReceiveFailed, err.Error())
 		return nil
@@ -208,7 +125,7 @@ func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBa
 		cb.Process(BMErrMarshFailed, err.Error())
 		return nil
 	}
-	//fmt.Println(string(byts))
+	fmt.Println(string(byts))
 	cb.Process(BMErrNone, fmt.Sprintf("New Mail got[%d]", len(envs)))
 	return byts
 }
