@@ -124,32 +124,52 @@ func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBa
 		cb.Process(BMErrMarshFailed, err.Error())
 		return nil
 	}
-	fmt.Println(string(byts))
+	//fmt.Println(string(byts))
 	cb.Process(BMErrNone, fmt.Sprintf("New Mail got[%d]", len(envs)))
 	return byts
 }
 
-func Encode(data string, iv []byte) string {
-	encoded, err := account.EncryptWithIV(activeWallet.Seeds(), iv, []byte(data))
+func EncodePin(pinCode []byte) []byte{
+	iv := bmp.NewIV()
+	encoded, err := account.EncryptWithIV(activeWallet.Seeds(), iv.Bytes(), pinCode)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return encoded
+}
+
+func DecodePin(pinCipher []byte) []byte {
+	decoded, err := account.Decrypt(activeWallet.Seeds(), pinCipher)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return decoded
+}
+
+func DecodePinByPeer(pinCipher []byte, fromAddr string) []byte {
+	aesKey, err := activeWallet.AeskeyOf(bmail.Address(fromAddr).ToPubKey())
+	if err != nil {
+		fmt.Println("DecodeForPeer ===AeskeyOf===>", err)
+		return nil
+	}
+	pinCode, err := account.Decrypt(aesKey, pinCipher)
+	if err != nil {
+		fmt.Println("DecodeForPeer ====Decrypt==>", err)
+		return nil
+	}
+	return pinCode
+}
+
+func EncodeByPin(data string, pinCode []byte) string {
+	iv := bmp.NewIV()
+	encoded, err := account.EncryptWithIV(pinCode, iv.Bytes(), []byte(data))
 	if err != nil {
 		fmt.Println(err)
 		return ""
 	}
 	return hexutil.Encode(encoded)
-}
-
-func Decode(data string) string {
-	d, err := hexutil.Decode(data)
-	if err != nil {
-		fmt.Println(err)
-		return ""
-	}
-	decoded, err := account.Decrypt(activeWallet.Seeds(), d)
-	if err != nil {
-		fmt.Println(err)
-		return ""
-	}
-	return string(decoded)
 }
 
 func DecodeByPin(data string, pinCode []byte) string {
@@ -164,20 +184,6 @@ func DecodeByPin(data string, pinCode []byte) string {
 		return ""
 	}
 	return string(decoded)
-}
-
-func DecodePinByPeer(codedPin []byte, fromAddr string) []byte {
-	aesKey, err := activeWallet.AeskeyOf(bmail.Address(fromAddr).ToPubKey())
-	if err != nil {
-		fmt.Println("DecodeForPeer ===AeskeyOf===>", err)
-		return nil
-	}
-	pinCode, err := account.Decrypt(aesKey, codedPin)
-	if err != nil {
-		fmt.Println("DecodeForPeer ====Decrypt==>", err)
-		return nil
-	}
-	return pinCode
 }
 
 func PinCode() []byte {
