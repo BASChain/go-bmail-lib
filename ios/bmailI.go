@@ -1,7 +1,6 @@
 package bmailLib
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/BASChain/go-account"
@@ -9,25 +8,30 @@ import (
 	"github.com/BASChain/go-bmail-protocol/bmp"
 	"github.com/BASChain/go-bmail-protocol/bmp/client"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/google/uuid"
 )
-
-type EnvelopeOfUI struct {
-	Eid      string   `json:"eid"`
-	Subject  string   `json:"sub"`
-	MsgBody  string   `json:"msg"`
-	From     string   `json:"from"`
-	FromName string   `json:"fromName"`
-	TOs      []string `json:"tos"`
-	CCs      []string `json:"ccs"`
-	BCCs     []string `json:"bccs"`
-	MailType int8     `json:"mType"`
-}
 
 var bmClient *client.BMailClient = nil
 
 type MailCallBack interface {
 	Process(typ int, msg string)
+}
+
+func fullFillRcpt(rcpts []*bmp.Recipient, pinCode []byte) error {
+
+	for _, uir := range rcpts {
+		aesKey, err := activeWallet.AeskeyOf(uir.ToAddr.ToPubKey())
+		if err != nil {
+			return err
+		}
+
+		iv := bmp.NewIV()
+		encodePin, err := account.EncryptWithIV(aesKey, iv.Bytes(), pinCode)
+		if err != nil {
+			return err
+		}
+		uir.AESKey = encodePin
+	}
+	return nil
 }
 
 func newClient() (*client.BMailClient, error) {
@@ -56,62 +60,43 @@ func CloseClient() {
 	}
 }
 
-func SendMailJson(mailJson string, cb MailCallBack) bool {
-
+func validate(cb MailCallBack) error {
 	if activeWallet == nil || !activeWallet.IsOpen() {
 		cb.Process(BMErrWalletInvalid, "wallet is nil or locked")
-		return false
+		return fmt.Errorf("wallet is nil or locked")
 	}
 
 	if bmClient == nil {
 		bc, err := newClient()
 		if err != nil {
-			fmt.Println(err.Error())
 			cb.Process(BMErrClientInvalid, err.Error())
-			return false
+			return err
 		}
 		bc.Wallet = activeWallet
 		bmClient = bc
 	}
-	jsonMail := &EnvelopeOfUI{}
+	return nil
+}
+
+func SendMailJson(mailJson string, pinCode []byte, cb MailCallBack) bool {
+	if err := validate(cb); err != nil {
+		return false
+	}
+	fmt.Println("======>Before send mail:=>", mailJson)
+	jsonMail := &bmp.BMailEnvelope{}
 	if err := json.Unmarshal([]byte(mailJson), jsonMail); err != nil {
-		fmt.Println("mail json data is invalid", err)
 		uiCallback.Error(BMErrInvalidJson, err.Error())
 		return false
 	}
-	toAddr, _ := basResolver.BMailBCA(jsonMail.TOs[0])
-	if !toAddr.IsValid() {
-		fmt.Println("can't find receiver's block chain info")
-		cb.Process(BMErrNoSuchBas, "can't find receiver's block chain info")
+	if err := fullFillRcpt(jsonMail.RCPTs, pinCode); err != nil {
+		cb.Process(BMErrInvalidJson, err.Error())
 		return false
 	}
-
-	env := &bmp.RawEnvelope{
-		EnvelopeHead: bmp.EnvelopeHead{
-			Eid:      uuid.MustParse(jsonMail.Eid),
-			From:     activeWallet.MailAddress(),
-			FromAddr: activeWallet.Address(),
-			To:       jsonMail.TOs[0],
-			ToAddr:   toAddr,
-		},
-		EnvelopeBody: bmp.EnvelopeBody{
-			Subject: jsonMail.Subject,
-			MsgBody: jsonMail.MsgBody,
-		},
-	}
-
-	if jsonMail.MailType == bmp.BMailModeP2P {
-		if err := bmClient.SendP2pMail(env); err != nil {
-			fmt.Println(err.Error())
-			cb.Process(BMErrSendFailed, err.Error())
-			return false
-		}
-	} else {
-		if err := bmClient.SendP2sMail(env); err != nil {
-			fmt.Println(err.Error())
-			cb.Process(BMErrSendFailed, err.Error())
-			return false
-		}
+	fmt.Println(jsonMail.ToString())
+	if err := bmClient.SendMail(jsonMail); err != nil {
+		fmt.Println("======>SendMail failed:", err.Error())
+		cb.Process(BMErrSendFailed, err.Error())
+		return false
 	}
 	cb.Process(BMErrNone, "success")
 	return true
@@ -119,22 +104,11 @@ func SendMailJson(mailJson string, cb MailCallBack) bool {
 
 func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBack) []byte {
 
-	if activeWallet == nil || !activeWallet.IsOpen() {
-		cb.Process(BMErrWalletInvalid, "wallet is nil or locked")
+	if err := validate(cb); err != nil {
 		return nil
 	}
-	if bmClient == nil {
-		bc, err := newClient()
-		if err != nil {
-			fmt.Println(err.Error())
-			cb.Process(BMErrClientInvalid, err.Error())
-			return nil
-		}
-		bc.Wallet = activeWallet
-		bmClient = bc
-	}
 
-	envs, err := bmClient.ReceiveEnv(timeSince1970, olderThanSince, pieceSize) //TODO:: seconds to milliseconds
+	envs, err := bmClient.ReceiveEnv(timeSince1970, olderThanSince, pieceSize)
 	if err != nil {
 		cb.Process(BMErrReceiveFailed, err.Error())
 		return nil
@@ -155,18 +129,42 @@ func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBa
 	return byts
 }
 
-func GetAddrByName(to string) string {
-	toAddr, _ := basResolver.BMailBCA(to)
-	if !toAddr.IsValid() {
-		uiCallback.Error(BMErrNoSuchBas, "can't find receiver's block chain info")
-		return ""
+func EncodePin(pinCode []byte) []byte{
+	iv := bmp.NewIV()
+	encoded, err := account.EncryptWithIV(activeWallet.Seeds(), iv.Bytes(), pinCode)
+	if err != nil {
+		fmt.Println(err)
+		return nil
 	}
-
-	return toAddr.String()
+	return encoded
 }
 
-func Encode(data string) string {
-	encoded, err := account.Encrypt(activeWallet.Seeds(), []byte(data))
+func DecodePin(pinCipher []byte) []byte {
+	decoded, err := account.Decrypt(activeWallet.Seeds(), pinCipher)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return decoded
+}
+
+func DecodePinByPeer(pinCipher []byte, fromAddr string) []byte {
+	aesKey, err := activeWallet.AeskeyOf(bmail.Address(fromAddr).ToPubKey())
+	if err != nil {
+		fmt.Println("DecodeForPeer ===AeskeyOf===>", err)
+		return nil
+	}
+	pinCode, err := account.Decrypt(aesKey, pinCipher)
+	if err != nil {
+		fmt.Println("DecodeForPeer ====Decrypt==>", err)
+		return nil
+	}
+	return pinCode
+}
+
+func EncodeByPin(data string, pinCode []byte) string {
+	iv := bmp.NewIV()
+	encoded, err := account.EncryptWithIV(pinCode, iv.Bytes(), []byte(data))
 	if err != nil {
 		fmt.Println(err)
 		return ""
@@ -174,13 +172,13 @@ func Encode(data string) string {
 	return hexutil.Encode(encoded)
 }
 
-func Decode(data string) string {
+func DecodeByPin(data string, pinCode []byte) string {
 	d, err := hexutil.Decode(data)
 	if err != nil {
 		fmt.Println(err)
 		return ""
 	}
-	decoded, err := account.Decrypt(activeWallet.Seeds(), d)
+	decoded, err := account.Decrypt(pinCode, d)
 	if err != nil {
 		fmt.Println(err)
 		return ""
@@ -188,22 +186,6 @@ func Decode(data string) string {
 	return string(decoded)
 }
 
-func DecodeForPeer(data, fromAddr string) string {
-	aesKey, err := activeWallet.AeskeyOf(bmail.Address(fromAddr).ToPubKey())
-	if err != nil {
-		fmt.Println("DecodeForPeer ===AeskeyOf===>", err)
-		return ""
-	}
-
-	bb, err := base64.StdEncoding.DecodeString(data)
-	if err != nil {
-		fmt.Println("DecodeForPeer ====DecodeString==>", err)
-		return ""
-	}
-	byts, err := account.Decrypt(aesKey, bb)
-	if err != nil {
-		fmt.Println("DecodeForPeer ====Decrypt==>", err)
-		return ""
-	}
-	return string(byts)
+func PinCode() []byte {
+	return (bmp.NewIV())[:]
 }
