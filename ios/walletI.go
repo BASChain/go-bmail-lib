@@ -2,7 +2,7 @@ package bmailLib
 
 import (
 	"fmt"
-	"github.com/BASChain/go-bmail-account"
+	"github.com/realbmail/go-bmail-account"
 )
 
 var activeWallet bmail.Wallet
@@ -16,7 +16,7 @@ func NewWallet(auth string) string {
 	return w.String()
 }
 
-func ChangeActiveWallet(jsonStr string) bool{
+func ChangeActiveWallet(jsonStr string) bool {
 	return LoadWallet(jsonStr)
 }
 
@@ -86,14 +86,14 @@ func WalletJson() string {
 }
 
 func MailName() string {
-	if activeWallet == nil{
+	if activeWallet == nil {
 		return ""
 	}
 	return activeWallet.MailAddress()
 }
 
 func SetMailName(mailName string) string {
-	if activeWallet ==  nil{
+	if activeWallet == nil {
 		return ""
 	}
 	activeWallet.SetMailName(mailName)

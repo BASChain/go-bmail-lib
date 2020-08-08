@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/BASChain/go-account"
-	"github.com/BASChain/go-bmail-account"
-	"github.com/BASChain/go-bmail-protocol/bmp"
-	"github.com/BASChain/go-bmail-protocol/bmp/client"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/realbmail/go-bmail-account"
+	"github.com/realbmail/go-bmail-protocol/bmp"
+	"github.com/realbmail/go-bmail-protocol/bmp/client"
 )
 
 var bmClient *client.BMailClient = nil
@@ -129,7 +129,7 @@ func BPop(timeSince1970 int64, olderThanSince bool, pieceSize int, cb MailCallBa
 	return byts
 }
 
-func EncodePin(pinCode []byte) []byte{
+func EncodePin(pinCode []byte) []byte {
 	iv := bmp.NewIV()
 	encoded, err := account.EncryptWithIV(activeWallet.Seeds(), iv.Bytes(), pinCode)
 	if err != nil {

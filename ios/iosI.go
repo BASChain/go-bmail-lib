@@ -2,8 +2,8 @@ package bmailLib
 
 import (
 	"fmt"
-	"github.com/BASChain/go-bmail-lib/utils"
-	"github.com/BASChain/go-bmail-resolver"
+	"github.com/realbmail/go-bmail-lib/utils"
+	"github.com/realbmail/go-bmail-resolver"
 )
 
 type UICallBack interface {
