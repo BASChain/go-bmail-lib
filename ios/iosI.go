@@ -12,7 +12,8 @@ type UICallBack interface {
 }
 
 const (
-	BMErrNone = iota
+	BlockChainQueryUrl = "https://ropsten.infura.io/v3/d64d364124684359ace20feae1f9ac20"
+	BMErrNone          = iota
 	BMErrClientInvalid
 	BMErrWalletInvalid
 	BMErrNoSuchBas

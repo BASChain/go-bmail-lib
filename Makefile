@@ -15,9 +15,9 @@ m:
 	GOARCH=amd64 GOOS=darwin go build  --buildmode=c-archive -o $(BINDIR)/bmail.a mac/*.go
 	cp mac/callback.h $(BINDIR)/
 a:
-	gomobile bind -v -o $(BINDIR)/BmailLib.aar -target=android github.com/BASChain/go-bmail-lib/android
+	gomobile bind -v -o $(BINDIR)/BmailLib.aar -target=android github.com/realbmail/go-bmail-lib/android
 i:
-	gomobile bind -v -o $(BINDIR)/BmailLib.framework -target=ios github.com/BASChain/go-bmail-lib/ios
+	gomobile bind -v -o $(BINDIR)/BmailLib.framework -target=ios github.com/realbmail/go-bmail-lib/ios
 
 sol:
 	cd resolver/ && $(MAKE)
