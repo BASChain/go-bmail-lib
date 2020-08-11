@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	stamp_token "github.com/realbmail/Bmail_token"
+	"github.com/realbmail/go-bmail-protocol/bmp"
 	"github.com/realbmail/go-stamp-walllet"
 )
 
@@ -17,6 +18,13 @@ func NewStampWallet(auth string) string {
 	}
 	stampWallet = w
 	return w.String()
+}
+
+func StampWalletAddress() string {
+	if stampWallet == nil {
+		return ""
+	}
+	return stampWallet.Address().Hex()
 }
 
 func OpenStampWallet(auth string) bool {
@@ -65,4 +73,32 @@ func WalletEthBalance(user string) int64 {
 	}
 
 	return eth.Int64()
+}
+
+func QueryStampListOf(domain string) string {
+	ips, _ := basResolver.DomainMX(domain)
+	if len(ips) == 0 {
+		return ""
+	}
+
+	conn, err := bmp.NewBMConn(ips[0])
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	defer conn.Close()
+	if err := conn.QueryStamp(); err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	ack := &bmp.StampOptsAck{}
+	if err := conn.ReadWithHeader(ack); err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	j, _ := json.Marshal(ack)
+	return string(j)
 }
