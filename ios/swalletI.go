@@ -7,6 +7,7 @@ import (
 	stamp_token "github.com/realbmail/Bmail_token"
 	"github.com/realbmail/go-bmail-protocol/bmp"
 	"github.com/realbmail/go-stamp-walllet"
+	"math/big"
 )
 
 var stampWallet stamp.Wallet
@@ -115,4 +116,27 @@ func QueryStampListOf(domain string) []byte {
 	ret := string(j)
 	fmt.Println(ret)
 	return j
+}
+
+func ActiveStamp(amount int64, tokenAddr string) bool {
+	if amount <= 0 {
+		fmt.Println("too small amount")
+		return false
+	}
+	if stampWallet == nil {
+		fmt.Println("stamp wallet is empty")
+		return false
+	}
+	priKey := stampWallet.PriKey()
+	if priKey == nil {
+		fmt.Println("stamp wallet isn't open")
+		return false
+	}
+	tx, err := stamp_token.Active(big.NewInt(amount), BlockChainQueryUrl, tokenAddr, priKey)
+	if err != nil {
+		fmt.Println("active stamp failed:=>", err)
+	}
+	fmt.Println(tx.Hash())
+
+	return true
 }
