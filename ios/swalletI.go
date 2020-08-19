@@ -43,14 +43,11 @@ func StampWalletFromJson(jsonStr string) bool {
 	stampWallet = w
 	return true
 }
-
 func StampDetails(stampAddr string) []byte {
 	if stampWallet == nil {
 		fmt.Println("please create stamp wallet first")
 		return nil
 	}
-
-	//fmt.Println("--1->", stampAddr, "--2->", stampWallet.Address().String())
 	details, err := stamp_token.DetailsOfStamp(BlockChainQueryUrl,
 		common.HexToAddress(stampAddr),
 		stampWallet.Address())
@@ -59,13 +56,11 @@ func StampDetails(stampAddr string) []byte {
 		fmt.Println("query stamp details err:=>", err.Error())
 		return nil
 	}
-
 	byts, err := json.Marshal(details)
 	if err != nil {
 		fmt.Println("json Marshal err:=>", err.Error())
 		return nil
 	}
-	//fmt.Println(string(byts))
 	return byts
 }
 
@@ -76,6 +71,45 @@ func WalletEthBalance(user string) int64 {
 	}
 
 	return eth.Int64()
+}
+
+func StampReceipt(domain, sAddr, userAddr string) []byte {
+	ips, _ := basResolver.DomainMX(domain)
+	if len(ips) == 0 {
+		fmt.Println("no service ip found:=>", domain)
+		return nil
+	}
+
+	fmt.Println("service ips:=>", ips)
+	conn, err := bmp.NewBMConn(ips[0])
+	if err != nil {
+		fmt.Println("create bmail connection err:=>", err)
+		return nil
+	}
+
+	defer conn.Close()
+	rsyn := &bmp.StampReceiptSyn{
+		StampAddr: sAddr,
+		UserAddr:  userAddr,
+	}
+
+	if err := conn.SendWithHeader(rsyn); err != nil {
+		fmt.Println("send stamp receipt query failed:=>", err)
+		return nil
+	}
+
+	ack := &bmp.StampReceiptACK{}
+	if err := conn.ReadWithHeader(ack); err != nil {
+		fmt.Println("receive stamp receipt err:=>", err)
+		return nil
+	}
+	if ack.UserAddr != userAddr || ack.StampAddr != sAddr {
+		fmt.Println("stamp receipt is not for me")
+		return nil
+	}
+
+	j, _ := ack.GetBytes()
+	return j
 }
 
 func QueryStampListOf(domain string) []byte {
@@ -102,7 +136,7 @@ func QueryStampListOf(domain string) []byte {
 	}
 
 	defer conn.Close()
-	if err := conn.QueryStamp(); err != nil {
+	if err := conn.QueryStampOpts(); err != nil {
 		fmt.Println("send stamp list query failed:=>", err)
 		return nil
 	}

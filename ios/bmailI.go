@@ -40,7 +40,7 @@ func newClient() (*client.BMailClient, error) {
 		return nil, fmt.Errorf("no valid bas resolver")
 	}
 
-	conf := &client.ClientConf{
+	conf := &client.Conf{
 		Wallet:   activeWallet,
 		Resolver: basResolver,
 	}
@@ -82,23 +82,26 @@ func SendMailJson(mailJson string, pinCode []byte, cb MailCallBack) bool {
 	if err := validate(cb); err != nil {
 		return false
 	}
-	fmt.Println("======>Before send mail:=>", mailJson)
+
 	jsonMail := &bmp.BMailEnvelope{}
 	if err := json.Unmarshal([]byte(mailJson), jsonMail); err != nil {
 		uiCallback.Error(BMErrInvalidJson, err.Error())
 		return false
 	}
+
 	if err := fullFillRcpt(jsonMail.RCPTs, pinCode); err != nil {
 		cb.Process(BMErrInvalidJson, err.Error())
 		return false
 	}
-	fmt.Println(jsonMail.ToString())
+
 	if err := bmClient.SendMail(jsonMail); err != nil {
 		fmt.Println("======>SendMail failed:", err.Error())
 		cb.Process(BMErrSendFailed, err.Error())
 		return false
 	}
+
 	cb.Process(BMErrNone, "success")
+
 	return true
 }
 
