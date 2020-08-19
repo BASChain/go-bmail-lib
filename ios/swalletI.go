@@ -50,7 +50,7 @@ func StampDetails(stampAddr string) []byte {
 		return nil
 	}
 
-	fmt.Println("--1->", stampAddr, "--2->", stampWallet.Address())
+	//fmt.Println("--1->", stampAddr, "--2->", stampWallet.Address().String())
 	details, err := stamp_token.DetailsOfStamp(BlockChainQueryUrl,
 		common.HexToAddress(stampAddr),
 		stampWallet.Address())
@@ -65,7 +65,7 @@ func StampDetails(stampAddr string) []byte {
 		fmt.Println("json Marshal err:=>", err.Error())
 		return nil
 	}
-	fmt.Println(string(byts))
+	//fmt.Println(string(byts))
 	return byts
 }
 
@@ -136,7 +136,7 @@ func ActiveStamp(amount int64, tokenAddr string) bool {
 	if err != nil {
 		fmt.Println("active stamp failed:=>", err)
 	}
-	fmt.Println(tx.Hash())
+	fmt.Println(tx.Hash().String())
 
 	return true
 }
