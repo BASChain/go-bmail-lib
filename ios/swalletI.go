@@ -35,6 +35,10 @@ func OpenStampWallet(auth string) bool {
 	return stampWallet.Open(auth)
 }
 
+func StampWalletIsOpen() bool {
+	return stampWallet != nil && stampWallet.PriKey() != nil
+}
+
 func StampWalletFromJson(jsonStr string) bool {
 	w, e := stamp.WalletOfJson(jsonStr)
 	if e != nil {
@@ -43,6 +47,7 @@ func StampWalletFromJson(jsonStr string) bool {
 	stampWallet = w
 	return true
 }
+
 func StampDetails(stampAddr string) []byte {
 	if stampWallet == nil {
 		fmt.Println("please create stamp wallet first")
@@ -73,7 +78,22 @@ func WalletEthBalance(user string) int64 {
 	return eth.Int64()
 }
 
-func StampReceipt(domain, sAddr, userAddr string) []byte {
+func StampReceipt(domain, sAddr string) []byte {
+
+	if stampWallet == nil || nil == stampWallet.PriKey() {
+		fmt.Println("need stamp wallet to valid receipt:=>")
+		return nil
+	}
+	userAddr := stampWallet.Address().String()
+	test_data := &bmp.StampReceipt{
+		UserAddr:  userAddr,
+		StampAddr: sAddr,
+		Credit:    12,
+	}
+
+	jd, _ := json.Marshal(test_data)
+	return jd
+
 	ips, _ := basResolver.DomainMX(domain)
 	if len(ips) == 0 {
 		fmt.Println("no service ip found:=>", domain)
@@ -108,7 +128,12 @@ func StampReceipt(domain, sAddr, userAddr string) []byte {
 		return nil
 	}
 
-	j, _ := ack.GetBytes()
+	if false == stamp.VerifyJsonSig(stampWallet.Address(), ack.Sig, ack.StampReceipt) {
+		fmt.Println("stamp receipt signature validation failed")
+		return nil
+	}
+
+	j, _ := json.Marshal(ack.StampReceipt)
 	return j
 }
 
