@@ -102,6 +102,7 @@ func SendMailJson(mailJson, pinCode, stampJson []byte, cb MailCallBack) bool {
 
 		stampData := &bmp.StampTXData{}
 		if err := json.Unmarshal(stampJson, stampData); err != nil {
+			fmt.Println("unmarshal stamp json data err", string(stampJson))
 			uiCallback.Error(BMErrInvalidJson, err.Error())
 			return false
 		}
