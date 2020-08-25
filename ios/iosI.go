@@ -16,11 +16,11 @@ const (
 	BMErrNone          = iota
 	BMErrClientInvalid
 	BMErrWalletInvalid
-	BMErrNoSuchBas
 	BMErrInvalidJson
 	BMErrSendFailed
 	BMErrReceiveFailed
 	BMErrMarshFailed
+	BMErrStampWallet
 )
 
 var uiCallback UICallBack

@@ -78,13 +78,13 @@ func validate(cb MailCallBack) error {
 	return nil
 }
 
-func SendMailJson(mailJson string, pinCode []byte, cb MailCallBack) bool {
+func SendMailJson(mailJson, pinCode, stampJson []byte, cb MailCallBack) bool {
 	if err := validate(cb); err != nil {
 		return false
 	}
 
 	jsonMail := &bmp.BMailEnvelope{}
-	if err := json.Unmarshal([]byte(mailJson), jsonMail); err != nil {
+	if err := json.Unmarshal(mailJson, jsonMail); err != nil {
 		uiCallback.Error(BMErrInvalidJson, err.Error())
 		return false
 	}
@@ -93,15 +93,36 @@ func SendMailJson(mailJson string, pinCode []byte, cb MailCallBack) bool {
 		cb.Process(BMErrInvalidJson, err.Error())
 		return false
 	}
+	var stamp *bmp.StampTX = nil
+	if stampJson != nil {
+		if stampWallet == nil || stampWallet.PriKey() == nil {
+			uiCallback.Error(BMErrStampWallet, "stamp wallet isn't open")
+			return false
+		}
 
-	if err := bmClient.SendMail(jsonMail); err != nil {
+		stampData := &bmp.StampTXData{}
+		if err := json.Unmarshal(stampJson, stampData); err != nil {
+			uiCallback.Error(BMErrInvalidJson, err.Error())
+			return false
+		}
+		sig, err := stampWallet.SignJson(stampData)
+		if err != nil {
+			uiCallback.Error(BMErrStampWallet, "stamp sign failed")
+			return false
+		}
+		stamp = &bmp.StampTX{
+			Sig:         sig,
+			StampTXData: stampData,
+		}
+	}
+
+	if err := bmClient.SendMail(jsonMail, stamp); err != nil {
 		fmt.Println("======>SendMail failed:", err.Error())
 		cb.Process(BMErrSendFailed, err.Error())
 		return false
 	}
 
 	cb.Process(BMErrNone, "success")
-
 	return true
 }
 

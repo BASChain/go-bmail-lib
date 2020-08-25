@@ -85,7 +85,7 @@ func StampReceipt(domain, sAddr string) []byte {
 		return nil
 	}
 	userAddr := stampWallet.Address().String()
-	test_data := &bmp.StampReceipt{
+	test_data := &bmp.StampTXData{
 		UserAddr:  userAddr,
 		StampAddr: sAddr,
 		Credit:    12,
@@ -118,7 +118,7 @@ func StampReceipt(domain, sAddr string) []byte {
 		return nil
 	}
 
-	ack := &bmp.StampReceiptACK{}
+	ack := &bmp.StampTX{}
 	if err := conn.ReadWithHeader(ack); err != nil {
 		fmt.Println("receive stamp receipt err:=>", err)
 		return nil
@@ -128,12 +128,12 @@ func StampReceipt(domain, sAddr string) []byte {
 		return nil
 	}
 
-	if false == stamp.VerifyJsonSig(stampWallet.Address(), ack.Sig, ack.StampReceipt) {
+	if false == stamp.VerifyJsonSig(stampWallet.Address(), ack.Sig, ack.StampTXData) {
 		fmt.Println("stamp receipt signature validation failed")
 		return nil
 	}
 
-	j, _ := json.Marshal(ack.StampReceipt)
+	j, _ := json.Marshal(ack.StampTXData)
 	return j
 }
 
